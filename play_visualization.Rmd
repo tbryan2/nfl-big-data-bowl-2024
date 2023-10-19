@@ -11,17 +11,26 @@ library(nflfastR)
 ```
 
 ```{r}
-tracking.example <- read_csv("data/tracking_week_8.csv")
+# Load in tracking data
+tracking <- read_csv("data/tracking_week_2.csv")
 
-games.sum <- read_csv("data/games.csv") 
+# Load in the games data
+games <- read_csv("data/games.csv") 
 
-plays.sum <- read_csv("data/plays.csv") 
+# Load in the plays data
+plays <- read_csv("data/plays.csv") 
 
-tracking.example.merged <- tracking.example %>% inner_join(games.sum) %>% inner_join(plays.sum) 
+# Read in tackles data
+tackles <- read_csv("data/tackles.csv")
 
-example.play <- tracking.example.merged %>% filter(playId == 3126 & gameId == 2022103005)
+# Load in the team colors data
+colors <- teams_colors_logos
 
-example.play %>% select(playDescription) %>% slice(1)
+# Join all the data
+tracking_full <- tracking %>% inner_join(games) %>% inner_join(plays) %>% left_join(colors, by = c("club" = "team_abbr")) %>% left_join(tackles, by = c("gameId","playId","nflId"))
+
+# Select one play
+example.play <- tracking_full %>% filter(playId == 55 & gameId == 2022091500)
 ```
 
 ```{r}
@@ -44,7 +53,7 @@ df.hash <- df.hash %>% filter(y < ymax, y > ymin)
 
 animate.play <- ggplot() +
   # Football field background
-  geom_rect(aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax), fill = "darkgreen", color = NA) +
+  geom_rect(aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax), fill = "#28B730", color = NA) +
 
   # Hash marks
   annotate("text", x = df.hash$x[df.hash$x < 55/2], 
@@ -61,10 +70,10 @@ animate.play <- ggplot() +
   # Numbers and 'G' on the field
   annotate("text", x = rep(hash.left, 11), y = seq(10, 110, by = 10), 
            label = c("G   ", seq(10, 50, by = 10), rev(seq(10, 40, by = 10)), "   G"), 
-           angle = 270, size = 4, colour = "white") + 
+           angle = 270, size = 7, family = 'century', colour = "white") + 
   annotate("text", x = rep((xmax - hash.left), 11), y = seq(10, 110, by = 10), 
            label = c("   G", seq(10, 50, by = 10), rev(seq(10, 40, by = 10)), "G   "), 
-           angle = 90, size = 4, colour = "white") + 
+           angle = 90, size = 7, family = 'century',  colour = "white") + 
 
   # Outer boundary of the field
   annotate("segment", x = c(xmin, xmin, xmax, xmax), 
@@ -73,9 +82,18 @@ animate.play <- ggplot() +
            yend = c(ymax, ymax, ymin, ymin), colour = "white") + 
 
   # Players and their jersey numbers
-  geom_point(data = example.play, aes(x = (xmax-y), y = x, shape = club,
-                                 fill = club, group = nflId, size = club, colour = club), alpha = 0.7) + 
-  geom_text(data = example.play, aes(x = (xmax-y), y = x, label = jerseyNumber), colour = "white", vjust = 0.36, size = 3.5) + 
+  # Use team_color for fill and represent as regular circles
+  geom_point(data = example.play, aes(x = (xmax-y), y = x, 
+             fill = team_color, group = nflId, colour = team_color), alpha = 1, shape = 21, size = 6) +
+   # Represent the football as a brown oval shape
+  geom_point(data = filter(example.play, club == 'football'), aes(x = (xmax-y), y = x), 
+             fill = "brown", colour = "brown", alpha = 1, shape = 24, size = 3) +
+  
+  # Explicitly define colors
+  scale_fill_identity() +
+  scale_color_identity() +
+  
+  geom_text(data = example.play, aes(x = (xmax-y), y = x, label = jerseyNumber), colour = "white", vjust = 0.36, size = 3.5, family = 'arial') + 
   
   ylim(ymin, ymax) + 
   coord_fixed() +  
