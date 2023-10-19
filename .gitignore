@@ -161,3 +161,4 @@ cython_debug/
 
 # Ignore all files in data directory
 data/*
+.Rproj.user
