@@ -8,6 +8,7 @@ library(tidyverse)
 library(gganimate)
 library(cowplot)
 library(nflfastR)
+library(transformr)
 ```
 
 ```{r}
@@ -29,8 +30,21 @@ colors <- teams_colors_logos
 # Join all the data
 tracking_full <- tracking %>% inner_join(games) %>% inner_join(plays) %>% left_join(colors, by = c("club" = "team_abbr")) %>% left_join(tackles, by = c("gameId","playId","nflId"))
 
-# Select one play
-example.play <- tracking_full %>% filter(playId == 55 & gameId == 2022091500)
+# Filter for plays where tackle = 1
+tackle_plays <- tracking_full %>% 
+  filter(tackle == 1)
+
+# Select a random play from the filtered data
+#set.seed(123) # Optional, for reproducibility
+selected_play <- sample_n(tackle_plays, 1)
+
+# Extract the gameId and playId of the random play
+selected_gameId <- selected_play$gameId
+selected_playId <- selected_play$playId
+
+# Use the selected gameId and playId to extract the play data
+example.play <- tracking_full %>% 
+  filter(gameId == selected_gameId, playId == selected_playId)
 ```
 
 ```{r}
@@ -41,15 +55,12 @@ hash.right <- 38.35
 hash.left <- 12
 hash.width <- 3.3
 
-
 ## Specific boundaries for a given play
 ymin <- max(round(min(example.play$x, na.rm = TRUE) - 10, -1), 0)
 ymax <- min(round(max(example.play$x, na.rm = TRUE) + 10, -1), 120)
 df.hash <- expand.grid(x = c(0, 23.36667, 29.96667, xmax), y = (10:110))
 df.hash <- df.hash %>% filter(!(floor(y %% 5) == 0))
 df.hash <- df.hash %>% filter(y < ymax, y > ymin)
-
-# ... [your previous code lines remain unchanged]
 
 animate.play <- ggplot() +
   # Football field background
@@ -81,20 +92,29 @@ animate.play <- ggplot() +
            xend = c(xmin, xmax, xmax, xmin), 
            yend = c(ymax, ymax, ymin, ymin), colour = "white") + 
 
+# Full path of the player who made a tackle
+  geom_path(data = filter(example.play, tackle == 1), 
+          aes(x = (xmax-y), y = x, group = nflId), color = "yellow", size = 15) +
+
   # Players and their jersey numbers
-  # Use team_color for fill and represent as regular circles
   geom_point(data = example.play, aes(x = (xmax-y), y = x, 
              fill = team_color, group = nflId, colour = team_color), alpha = 1, shape = 21, size = 6) +
-   # Represent the football as a brown oval shape
+  
+  # Player who made the tackle
+  geom_point(data = filter(example.play, tackle == 1), 
+           aes(x = (xmax-y), y = x, fill = team_color), 
+           shape = 21, color = "yellow", size = 8, stroke = 2, alpha = 1) +
+
+  # Football representation
   geom_point(data = filter(example.play, club == 'football'), aes(x = (xmax-y), y = x), 
              fill = "brown", colour = "brown", alpha = 1, shape = 24, size = 3) +
-  
+
   # Explicitly define colors
   scale_fill_identity() +
   scale_color_identity() +
-  
+
   geom_text(data = example.play, aes(x = (xmax-y), y = x, label = jerseyNumber), colour = "white", vjust = 0.36, size = 3.5, family = 'arial') + 
-  
+
   ylim(ymin, ymax) + 
   coord_fixed() +  
   theme_nothing() + 
@@ -105,4 +125,8 @@ animate.play <- ggplot() +
 ## Ensure timing of play matches 10 frames-per-second
 play.length.ex <- length(unique(example.play$frameId))
 animate(animate.play, fps = 10, nframe = play.length.ex)
+```
+
+```{r}
+print(n_distinct(tackler_data$nflId))
 ```
