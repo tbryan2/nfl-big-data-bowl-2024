@@ -9,6 +9,8 @@ library(gganimate)
 library(cowplot)
 library(nflfastR)
 library(transformr)
+library(png)
+library(grid)
 ```
 
 ```{r}
@@ -26,9 +28,19 @@ tackles <- read_csv("data/tackles.csv")
 
 # Load in the team colors data
 colors <- teams_colors_logos
+```
 
-# Join all the data
-tracking_full <- tracking %>% inner_join(games) %>% inner_join(plays) %>% left_join(colors, by = c("club" = "team_abbr")) %>% left_join(tackles, by = c("gameId","playId","nflId"))
+```{r}
+# Modify the join to include home team's logo based on homeTeamAbbr
+home_logos <- colors %>% select(team_abbr, team_logo_wikipedia) %>%
+  setNames(c("homeTeamAbbr", "home_team_logo_wikipedia"))
+
+tracking_full <- tracking %>% 
+  inner_join(games) %>%
+  inner_join(plays) %>% 
+  left_join(colors, by = c("club" = "team_abbr")) %>%
+  left_join(tackles, by = c("gameId","playId","nflId")) %>%
+  left_join(home_logos, by = "homeTeamAbbr")
 
 # Filter for plays where tackle = 1
 tackle_plays <- tracking_full %>% 
@@ -48,6 +60,14 @@ example.play <- tracking_full %>%
 ```
 
 ```{r}
+# Download the image
+logo_url <- unique(filter(example.play, !is.na(home_team_logo_wikipedia))$home_team_logo_wikipedia)[1]
+tmp_file <- tempfile(fileext = ".png")
+curl_download(logo_url, tmp_file)
+logo_img <- readPNG(tmp_file)
+```
+
+```{r}
 ## General field boundaries
 xmin <- 0
 xmax <- 160/3
@@ -61,49 +81,56 @@ ymax <- min(round(max(example.play$x, na.rm = TRUE) + 10, -1), 120)
 df.hash <- expand.grid(x = c(0, 23.36667, 29.96667, xmax), y = (10:110))
 df.hash <- df.hash %>% filter(!(floor(y %% 5) == 0))
 df.hash <- df.hash %>% filter(y < ymax, y > ymin)
+```
 
+```{r}
+# Create a dataset where the line data is duplicated for each unique frame
+line_data <- filter(example.play, tackle == 1) %>%
+  select(x, y, nflId, team_color, team_color2) %>%  # select additional columns you may need
+  crossing(frameId = unique(example.play$frameId))
+```
+
+```{r}
+# Complete animated plot
 animate.play <- ggplot() +
-  # Football field background
+   # Football field background
   geom_rect(aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax), fill = "#28B730", color = NA) +
-
-  # Hash marks
+  # Hash marks, field boundary lines, numbers, outer boundary, etc.
   annotate("text", x = df.hash$x[df.hash$x < 55/2], 
            y = df.hash$y[df.hash$x < 55/2], label = "_", hjust = 0, vjust = -0.2, colour = "white") + 
   annotate("text", x = df.hash$x[df.hash$x > 55/2], 
            y = df.hash$y[df.hash$x > 55/2], label = "_", hjust = 1, vjust = -0.2, colour = "white") + 
-
-  # Field boundary lines
   annotate("segment", x = xmin, 
            y = seq(max(10, ymin), min(ymax, 110), by = 5), 
            xend = xmax, 
            yend = seq(max(10, ymin), min(ymax, 110), by = 5), colour = "white") + 
-
-  # Numbers and 'G' on the field
   annotate("text", x = rep(hash.left, 11), y = seq(10, 110, by = 10), 
            label = c("G   ", seq(10, 50, by = 10), rev(seq(10, 40, by = 10)), "   G"), 
            angle = 270, size = 7, family = 'century', colour = "white") + 
   annotate("text", x = rep((xmax - hash.left), 11), y = seq(10, 110, by = 10), 
            label = c("   G", seq(10, 50, by = 10), rev(seq(10, 40, by = 10)), "G   "), 
            angle = 90, size = 7, family = 'century',  colour = "white") + 
-
-  # Outer boundary of the field
   annotate("segment", x = c(xmin, xmin, xmax, xmax), 
            y = c(ymin, ymax, ymax, ymin), 
            xend = c(xmin, xmax, xmax, xmin), 
            yend = c(ymax, ymax, ymin, ymin), colour = "white") + 
 
-# Full path of the player who made a tackle
-  geom_path(data = filter(example.play, tackle == 1), 
-          aes(x = (xmax-y), y = x, group = nflId), color = "yellow", size = 15) +
+  # Add the static line for the tackler's path
+  geom_line(data = line_data, 
+            aes(x = (xmax - y), y = x),
+            color = "black", size = 1) +
 
   # Players and their jersey numbers
   geom_point(data = example.play, aes(x = (xmax-y), y = x, 
-             fill = team_color, group = nflId, colour = team_color), alpha = 1, shape = 21, size = 6) +
-  
+             fill = team_color, group = nflId, colour = team_color2), alpha = 1, shape = 21, size = 7, stroke = 2) +
+  geom_text(data = example.play, aes(x = (xmax-y), y = x, label = jerseyNumber), colour = "white", vjust = 0.36, size = 3.5, family = 'arial') + 
+
   # Player who made the tackle
   geom_point(data = filter(example.play, tackle == 1), 
            aes(x = (xmax-y), y = x, fill = team_color), 
            shape = 21, color = "yellow", size = 8, stroke = 2, alpha = 1) +
+  
+  geom_text(data = example.play, aes(x = (xmax-y), y = x, label = jerseyNumber), colour = "white", vjust = 0.36, size = 3.5, family = 'arial') +
 
   # Football representation
   geom_point(data = filter(example.play, club == 'football'), aes(x = (xmax-y), y = x), 
@@ -112,14 +139,12 @@ animate.play <- ggplot() +
   # Explicitly define colors
   scale_fill_identity() +
   scale_color_identity() +
-
-  geom_text(data = example.play, aes(x = (xmax-y), y = x, label = jerseyNumber), colour = "white", vjust = 0.36, size = 3.5, family = 'arial') + 
-
+  
   ylim(ymin, ymax) + 
   coord_fixed() +  
   theme_nothing() + 
-  transition_time(frameId)  +
-  ease_aes('linear') + 
+  transition_time(frameId) +
+  ease_aes('linear') +
   NULL
 
 ## Ensure timing of play matches 10 frames-per-second
@@ -128,5 +153,48 @@ animate(animate.play, fps = 10, nframe = play.length.ex)
 ```
 
 ```{r}
-print(n_distinct(tackler_data$nflId))
+head(filter(example.play, tackle == 1))
+```
+
+```{r}
+library(tidyr)
+
+# Create a dataset where the line data is duplicated for each unique frame
+line_data <- filter(example.play, tackle == 1) %>%
+  select(x, y) %>%
+  crossing(frameId = unique(example.play$frameId))
+
+# Create the animated plot
+animate_plot <- ggplot() +
+  geom_line(data = line_data,
+            aes(x = (xmax - y), y = x),
+            color = "blue", size = 1) +
+  coord_fixed() +
+  transition_time(frameId) +
+  NULL
+
+# Animate the plot
+play.length.ex <- length(unique(example.play$frameId))
+animate(animate_plot, nframes = play.length.ex)
+```
+
+```{r}
+# Create the animated plot
+animate.play <- ggplot(example.play, aes(x = (xmax - y), y = x)) +
+  geom_path(data = example.play, aes(group = frameId), color = "black", size = 4) +  # static path
+  geom_point(aes(color = frameId), size = 5) +  # animated point
+  coord_fixed() +
+  theme_minimal() +
+  transition_states(
+    states = frameId,
+    transition_length = 1,
+    state_length = 1
+  ) +
+  ease_aes('linear')
+
+# Determine the number of unique frames to set the animation length
+play.length.ex <- length(unique(example.play$frameId))
+
+# Generate the animation
+animate(animate.play, fps = 10, nframes = play.length.ex)
 ```
