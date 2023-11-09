@@ -11,6 +11,7 @@ library(nflfastR)
 library(transformr)
 library(png)
 library(grid)
+library(imager)
 ```
 
 ```{r}
@@ -47,8 +48,38 @@ tackle_plays <- tracking_full %>%
   filter(tackle == 1)
 
 # Select a random play from the filtered data
-#set.seed(123) # Optional, for reproducibility
+#set.seed(138) # Optional, for reproducibility
 selected_play <- sample_n(tackle_plays, 1)
+
+# Extract the gameId and playId of the random play
+selected_gameId <- selected_play$gameId
+selected_playId <- selected_play$playId
+
+# Use the selected gameId and playId to extract the play data
+example.play <- tracking_full %>% 
+  filter(gameId == 2022092501, playId == 552)
+```
+
+```{r}
+# Modify the join to include home team's logo based on homeTeamAbbr
+home_logos <- colors %>% select(team_abbr, team_logo_wikipedia) %>%
+  setNames(c("homeTeamAbbr", "home_team_logo_wikipedia"))
+
+tracking_full <- tracking %>% 
+  inner_join(games) %>%
+  inner_join(plays) %>% 
+  left_join(colors, by = c("club" = "team_abbr")) %>%
+  left_join(tackles, by = c("gameId","playId","nflId")) %>%
+  left_join(home_logos, by = "homeTeamAbbr")
+
+# Filter for plays where possessionTeam == 'CHI' and playDescription contains 'touchdown'
+chi_touchdown_plays <- tracking_full %>% 
+  filter(possessionTeam == 'CHI' & str_detect(playDescription, regex("touchdown", ignore_case = TRUE)))
+
+# Select a random play from the filtered data
+# set.seed() is optional, for reproducibility
+#set.seed(138)  
+selected_play <- sample_n(chi_touchdown_plays, 1)
 
 # Extract the gameId and playId of the random play
 selected_gameId <- selected_play$gameId
@@ -60,11 +91,25 @@ example.play <- tracking_full %>%
 ```
 
 ```{r}
-# Download the image
-logo_url <- unique(filter(example.play, !is.na(home_team_logo_wikipedia))$home_team_logo_wikipedia)[1]
-tmp_file <- tempfile(fileext = ".png")
-curl_download(logo_url, tmp_file)
-logo_img <- readPNG(tmp_file)
+# Check if the URL is valid
+logo_url <- unique(na.omit(example.play$home_team_logo_wikipedia))[1]
+if (!is.na(logo_url) & logo_url != "") {
+    download.file(logo_url, destfile = "logo.png", mode = "wb")
+    logo_img <- readPNG("logo.png")
+    
+    # Ensure the image has 3 dimensions
+    if (length(dim(logo_img)) != 3) {
+      stop("The image must have 3 dimensions (height, width, color).")
+    }
+
+    # Rotate the image 90 degrees to the left
+    rotated_logo_img <- aperm(logo_img, c(2, 1, 3))
+    
+    # Flip the image vertically to align it correctly
+    rotated_logo_img <- rotated_logo_img[dim(rotated_logo_img)[1]:1,,]
+
+    rotated_logo_grob <- rasterGrob(rotated_logo_img, interpolate=TRUE)
+}
 ```
 
 ```{r}
@@ -74,6 +119,12 @@ xmax <- 160/3
 hash.right <- 38.35
 hash.left <- 12
 hash.width <- 3.3
+mid_x <- (xmin + xmax) / 2
+mid_y <- 60  # 50-yard line is midfield in y-axis
+
+# Size of the logo, change these based on how big you want the logo to be
+logo_width <- 15  # width of logo along x-axis
+logo_height <- 15  # height of logo along y-axis
 
 ## Specific boundaries for a given play
 ymin <- max(round(min(example.play$x, na.rm = TRUE) - 10, -1), 0)
@@ -93,13 +144,23 @@ line_data <- filter(example.play, tackle == 1) %>%
 ```{r}
 # Complete animated plot
 animate.play <- ggplot() +
-   # Football field background
+  # Football field background
   geom_rect(aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax), fill = "#28B730", color = NA) +
+  
+  annotation_custom(
+    rotated_logo_grob, 
+    xmin = mid_x - (logo_width / 2), 
+    xmax = mid_x + (logo_width / 2), 
+    ymin = mid_y - (logo_height / 2), 
+    ymax = mid_y + (logo_height / 2)
+  ) +
+
   # Hash marks, field boundary lines, numbers, outer boundary, etc.
   annotate("text", x = df.hash$x[df.hash$x < 55/2], 
            y = df.hash$y[df.hash$x < 55/2], label = "_", hjust = 0, vjust = -0.2, colour = "white") + 
   annotate("text", x = df.hash$x[df.hash$x > 55/2], 
            y = df.hash$y[df.hash$x > 55/2], label = "_", hjust = 1, vjust = -0.2, colour = "white") + 
+
   annotate("segment", x = xmin, 
            y = seq(max(10, ymin), min(ymax, 110), by = 5), 
            xend = xmax, 
@@ -110,10 +171,14 @@ animate.play <- ggplot() +
   annotate("text", x = rep((xmax - hash.left), 11), y = seq(10, 110, by = 10), 
            label = c("   G", seq(10, 50, by = 10), rev(seq(10, 40, by = 10)), "G   "), 
            angle = 90, size = 7, family = 'century',  colour = "white") + 
+
   annotate("segment", x = c(xmin, xmin, xmax, xmax), 
            y = c(ymin, ymax, ymax, ymin), 
            xend = c(xmin, xmax, xmax, xmin), 
            yend = c(ymax, ymax, ymin, ymin), colour = "white") + 
+
+  
+
 
   # Add the static line for the tackler's path
   geom_line(data = line_data, 
@@ -135,6 +200,8 @@ animate.play <- ggplot() +
   # Football representation
   geom_point(data = filter(example.play, club == 'football'), aes(x = (xmax-y), y = x), 
              fill = "brown", colour = "brown", alpha = 1, shape = 24, size = 3) +
+  
+
 
   # Explicitly define colors
   scale_fill_identity() +
@@ -153,48 +220,5 @@ animate(animate.play, fps = 10, nframe = play.length.ex)
 ```
 
 ```{r}
-head(filter(example.play, tackle == 1))
-```
-
-```{r}
-library(tidyr)
-
-# Create a dataset where the line data is duplicated for each unique frame
-line_data <- filter(example.play, tackle == 1) %>%
-  select(x, y) %>%
-  crossing(frameId = unique(example.play$frameId))
-
-# Create the animated plot
-animate_plot <- ggplot() +
-  geom_line(data = line_data,
-            aes(x = (xmax - y), y = x),
-            color = "blue", size = 1) +
-  coord_fixed() +
-  transition_time(frameId) +
-  NULL
-
-# Animate the plot
-play.length.ex <- length(unique(example.play$frameId))
-animate(animate_plot, nframes = play.length.ex)
-```
-
-```{r}
-# Create the animated plot
-animate.play <- ggplot(example.play, aes(x = (xmax - y), y = x)) +
-  geom_path(data = example.play, aes(group = frameId), color = "black", size = 4) +  # static path
-  geom_point(aes(color = frameId), size = 5) +  # animated point
-  coord_fixed() +
-  theme_minimal() +
-  transition_states(
-    states = frameId,
-    transition_length = 1,
-    state_length = 1
-  ) +
-  ease_aes('linear')
-
-# Determine the number of unique frames to set the animation length
-play.length.ex <- length(unique(example.play$frameId))
-
-# Generate the animation
-animate(animate.play, fps = 10, nframes = play.length.ex)
+anim_save("animated_plot.gif", animate.play)
 ```
