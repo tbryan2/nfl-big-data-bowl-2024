@@ -11,11 +11,14 @@ class FootballPlay(gym.Env):
     '''
     metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 10}
 
-    def __init__(self, df, render_mode=None, max_frames=100):
+    def __init__(self, df, agent_nflId, render_mode=None, max_frames=100):
         super().__init__()
 
         self.df = df
-        self.players_positions = self._get_initial_positions()
+        self.agent_nflId = agent_nflId  # Store the nflId of the player to be controlled by the agent
+
+        # Get initial positions and remove the agent player's movements from the dataframe
+        self.players_positions, self.df = self._get_initial_positions(df, agent_nflId)
         self.football_position = self._get_football_initial_position()
 
         # Dimensions of a football field in yards
@@ -54,14 +57,20 @@ class FootballPlay(gym.Env):
         self.window = None
         self.clock = None
 
-    def _get_initial_positions(self):
+    def _get_initial_positions(self, df, agent_nflId):
         # Filter the dataframe to get the initial positions of the players
-        initial_frame_df = self.df[self.df['frameId'] == 1]
+        initial_frame_df = df[df['frameId'] == 1]
         player_positions = {}
         for _, row in initial_frame_df.iterrows():
-            if pd.notna(row['nflId']):  # Check if it's a player and not the football
+            if pd.notna(row['nflId']) and row['nflId'] != agent_nflId:  # Check if it's a player and not the football
                 player_positions[row['nflId']] = np.array([row['x'], row['y']])
-        return player_positions
+            elif row['nflId'] == agent_nflId:  # This is the player controlled by the agent
+                self._agent_location = np.array([row['x'], row['y']], dtype=np.int32)
+
+        # Remove the agent player's movements from the dataframe
+        df = df[df['nflId'] != agent_nflId]
+
+        return player_positions, df
 
     def _get_football_initial_position(self):
         initial_frame_df = self.df[(self.df['frameId'] == 1) & (self.df['displayName'] == 'football')]
@@ -83,8 +92,16 @@ class FootballPlay(gym.Env):
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
 
-        self._agent_location = self.np_random.integers(0, [self.size_x, self.size_y], dtype=np.int32)
+        # Reset the agent's location to the starting position of the player with agent_nflId
+        initial_player_position = self.df[(self.df['frameId'] == 1) & (self.df['nflId'] == self.agent_nflId)]
+        if not initial_player_position.empty:
+            self._agent_location = np.array([initial_player_position.iloc[0]['x'], initial_player_position.iloc[0]['y']], dtype=np.int32)
+        else:
+            # If the player is not found, default to the center of the field
+            self._agent_location = np.array([self.size_x / 2, self.size_y / 2], dtype=np.int32)
+
         self._target_location = self._agent_location
+        
         while np.array_equal(self._target_location, self._agent_location):
             self._target_location = self.np_random.integers(0, [self.size_x, self.size_y], dtype=np.int32)
 
@@ -95,7 +112,7 @@ class FootballPlay(gym.Env):
             self._render_frame()
 
         # Reset the current frame for each iteration
-        self.current_frame = 0
+        self.current_frame = 1
 
         return observation, info
     
@@ -103,18 +120,15 @@ class FootballPlay(gym.Env):
         # Normalize the action to make sure it's within the allowed range
         action = np.clip(action, self.action_space.low, self.action_space.high)
 
-        # Check for collision with the obstacle
+        # Move the agent based on the action
         new_location = self._agent_location + action
-        if np.array_equal(new_location, self.obstacle_location):
-            # Prevent movement if it results in a collision
-            new_location = self._agent_location
 
         # Update agent's location
         self._agent_location = np.clip(
-            new_location, [self.xmin, self.xmin], [self.size_x - 1, self.size_y - 1]
+            new_location, [self.xmin, self.ymin], [self.size_x - 1, self.size_y - 1]
         ).astype(np.int32)
 
-        # Update the positions of the players and the football for the current frame
+        # Update the positions of the other players and the football for the current frame
         current_frame_df = self.df[self.df['frameId'] == self.current_frame]
         for _, row in current_frame_df.iterrows():
             if pd.notna(row['nflId']):  # Check if it's a player and not the football
@@ -131,8 +145,6 @@ class FootballPlay(gym.Env):
 
         if self.render_mode == "human":
             self._render_frame()
-
-        
 
         return observation, reward, terminated, False, info
     
@@ -204,7 +216,7 @@ class FootballPlay(gym.Env):
         # Draw the agent
         pygame.draw.circle(
             canvas,
-            (0, 0, 255),  # Blue color for the agent
+            (0, 0, 0),  # Black color for the agent
             (
                 int(self._agent_location[0] * pix_square_size_x + pix_square_size_x / 2),
                 int(self._agent_location[1] * pix_square_size_y + pix_square_size_y / 2),
@@ -221,18 +233,6 @@ class FootballPlay(gym.Env):
                 int(self._target_location[1] * pix_square_size_y + pix_square_size_y / 2),
             ),
             int(pix_square_size_x / 2),
-        )
-
-        # Draw the obstacle
-        pygame.draw.rect(
-            canvas,
-            (0, 255, 0),  # Green color for the obstacle
-            pygame.Rect(
-                self.obstacle_location[0] * pix_square_size_x,
-                self.obstacle_location[1] * pix_square_size_y,
-                pix_square_size_x,
-                pix_square_size_y,
-            ),
         )
 
         if self.render_mode == "human":
