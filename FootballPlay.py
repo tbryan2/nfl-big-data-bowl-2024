@@ -62,7 +62,7 @@ class FootballPlay(gym.Env):
             if pd.notna(row['nflId']):  # Check if it's a player and not the football
                 player_positions[row['nflId']] = np.array([row['x'], row['y']])
         return player_positions
-    
+
     def _get_football_initial_position(self):
         initial_frame_df = self.df[(self.df['frameId'] == 1) & (self.df['displayName'] == 'football')]
         if not initial_frame_df.empty:
@@ -114,6 +114,14 @@ class FootballPlay(gym.Env):
             new_location, [self.xmin, self.xmin], [self.size_x - 1, self.size_y - 1]
         ).astype(np.int32)
 
+        # Update the positions of the players and the football for the current frame
+        current_frame_df = self.df[self.df['frameId'] == self.current_frame]
+        for _, row in current_frame_df.iterrows():
+            if pd.notna(row['nflId']):  # Check if it's a player and not the football
+                self.players_positions[row['nflId']] = np.array([row['x'], row['y']])
+            elif row['displayName'] == 'football':
+                self.football_position = np.array([row['x'], row['y']])
+
         self.current_frame += 1
 
         terminated = np.array_equal(self._agent_location, self._target_location) or self.current_frame >= self.max_frames
@@ -123,6 +131,8 @@ class FootballPlay(gym.Env):
 
         if self.render_mode == "human":
             self._render_frame()
+
+        
 
         return observation, reward, terminated, False, info
     
@@ -167,8 +177,9 @@ class FootballPlay(gym.Env):
                     (x * pix_square_size_x, self.window_size)
                 )
 
-        # Draw the players
+        # Draw the updated positions of the players
         for nflId, position in self.players_positions.items():
+            # Draw each player using their updated position
             pygame.draw.circle(
                 canvas,
                 (0, 0, 255),  # Blue color for players
@@ -179,7 +190,7 @@ class FootballPlay(gym.Env):
                 int(pix_square_size_x / 2),
             )
 
-        # Draw the football
+        # Draw the football using its updated position
         pygame.draw.circle(
             canvas,
             (255, 165, 0),  # Orange color for the football
