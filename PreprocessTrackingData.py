@@ -1,6 +1,10 @@
 import pandas as pd
 
 class PreprocessTrackingData():
+    '''
+    Filter the tracking data down to one play, join with
+    the play data.
+    '''
     def __init__(self, tracking, plays, gameId, playId):
         self.gameId = gameId
         self.playId = playId
