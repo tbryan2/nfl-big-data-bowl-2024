@@ -16,3 +16,9 @@ Define "a tackle" using empirical data - how does the agent know when it's compl
 Split FootballPlay up a bit? It's a huge class..
 gracefully quit the pygame window, also make the pygame window able to go on top of or under other windows like a regular window
 #1 priority is defining a reward function after the enviornment is set up 
+
+NEXT ON THE TO DO LIST:
+
+Make the dots pretty
+Comment the code efficiently
+--- maybe break it into smaller subclasses if that's a thing?
