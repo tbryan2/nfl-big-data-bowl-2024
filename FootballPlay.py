@@ -21,7 +21,7 @@ class FootballPlay(gym.Env):
 
         # Get initial positions of players and football,
         # remove the agent player's movements from the dataframe
-        self.players_positions, self.df = self._get_initial_positions(df, agent_nflid)
+        self.players_positions_df, self.df = self._get_initial_positions(df, agent_nflid)
         self.football_position = self._get_football_initial_position()
 
         # TODO: all dimensions, observation spaces, and action spaces
@@ -76,22 +76,29 @@ class FootballPlay(gym.Env):
         '''
 
         initial_frame_df = df[df['frameId'] == 1]
-        player_positions = {}
 
-        for _, row in initial_frame_df.iterrows():
-            # Check if it's a player and not the football
-            # and create a dictionary of player positions in frame 1
-            if pd.notna(row['nflId']) and row['nflId'] != agent_nflid:
-                player_positions[row['nflId']] = np.array([row['x'], row['y']])
+        # Create a new DataFrame for player positions and team colors
+        player_positions_df = initial_frame_df[initial_frame_df['nflId'] != agent_nflid][
+            ['nflId', 'x', 'y', 'team_color', 'team_color2', 'jerseyNumber']
+        ]
 
-            # This is the player controlled by the agent, remove his movements
-            elif row['nflId'] == agent_nflid:  
-                self._agent_location = np.array([row['x'], row['y']], dtype=np.int32)
+        # Extract the agent's initial location
+        agent_initial_df = initial_frame_df[initial_frame_df['nflId'] == agent_nflid]
 
-        # Remove the agent player's movements from the dataframe
+        if not agent_initial_df.empty:
+            self._agent_location = np.array([
+                agent_initial_df.iloc[0]['x'],
+                agent_initial_df.iloc[0]['y']
+            ], dtype=np.int32)
+        else:
+            # Default agent location if not found
+            self._agent_location = np.array([0, 0], dtype=np.int32)
+
+        # Remove the agent player's movements from the original dataframe
         df = df[df['nflId'] != agent_nflid]
 
-        return player_positions, df
+        return player_positions_df, df
+
 
     def _get_football_initial_position(self):
         '''
@@ -185,7 +192,8 @@ class FootballPlay(gym.Env):
         current_frame_df = self.df[self.df['frameId'] == self.current_frame]
         for _, row in current_frame_df.iterrows():
             if pd.notna(row['nflId']):  # Check if it's a player and not the football
-                self.players_positions[row['nflId']] = np.array([row['x'], row['y']])
+                # Update positions in the DataFrame
+                self.players_positions_df.loc[self.players_positions_df['nflId'] == row['nflId'], ['x', 'y']] = row['x'], row['y']
             elif row['displayName'] == 'football':
                 self.football_position = np.array([row['x'], row['y']])
 
@@ -263,18 +271,26 @@ class FootballPlay(gym.Env):
                     (x * pix_square_size_x, self.window_size)
                 )
 
-        # Draw the updated positions of the players
-        for nflId, position in self.players_positions.items():
-            # Draw each player using their updated position
-            pygame.draw.circle(
-                canvas,
-                (0, 0, 255),  # Blue color for players
-                (
-                    int(position[0] * pix_square_size_x),
-                    int(position[1] * pix_square_size_y),
-                ),
-                int(pix_square_size_x / 2),
-            )
+        for _, row in self.players_positions_df.iterrows():
+            if pd.notna(row['nflId']):  # Check if it's a player and not the football
+                team_color = row.get('team_color', (0, 0, 255))  # Default color if not found
+                team_color2 = row.get('team_color2', (0, 0, 0))  # Default border color
+
+                # Draw each player using their updated position and team colors
+                pygame.draw.circle(
+                    canvas,
+                    team_color2,
+                    (int(row['x'] * pix_square_size_x), int(row['y'] * pix_square_size_y)),
+                    int(pix_square_size_x / 2) + 6  # Add 4 to make the circle bigger
+                )
+                # Outer circle (team_color2) as border
+                pygame.draw.circle(
+                    canvas,
+                    team_color,
+                    (int(row['x'] * pix_square_size_x), int(row['y'] * pix_square_size_y)),
+                    int(pix_square_size_x / 2) + 2,
+                    width=1  # Border thickness
+                )
 
         # Draw the football using its updated position
         pygame.draw.circle(
