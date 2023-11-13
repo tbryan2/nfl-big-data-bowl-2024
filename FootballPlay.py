@@ -51,10 +51,11 @@ class FootballPlay(gym.Env):
             {
                 "agent": spaces.Box(np.array([self.xmin, self.ymin]), 
                                     np.array([self.size_x - 1, self.size_y - 1]), dtype=np.int32),
-                "target": spaces.Box(np.array([self.xmin, self.ymin]), 
-                                     np.array([self.size_x - 1, self.size_y - 1]), dtype=np.int32),
+                "football": spaces.Box(np.array([self.xmin, self.ymin]), 
+                                    np.array([self.size_x - 1, self.size_y - 1]), dtype=np.int32),
             }
         )
+
 
         # Continuous action space: each action is a 2D vector with components in the range [-1, 1]
         self.action_space = spaces.Box(low=-1, high=1, shape=(2,), dtype=np.float32)
@@ -121,7 +122,7 @@ class FootballPlay(gym.Env):
         about future actions.
         '''
 
-        return {"agent": self._agent_location, "target": self._target_location}
+        return {"agent": self._agent_location, "target": self.football_position}
 
     def _get_info(self):
         '''
@@ -133,7 +134,7 @@ class FootballPlay(gym.Env):
 
         return {
             "distance": np.linalg.norm(
-                self._agent_location - self._target_location, ord=1
+                self._agent_location - self.football_position, ord=1
             )
         }
 
@@ -149,12 +150,8 @@ class FootballPlay(gym.Env):
         # Reset the agent to its initial position
         self._agent_location = self._initial_agent_location.copy()
 
-        # The agent's location is already set in __init__, so we just use it directly
-        self._target_location = self._agent_location
-
-        while np.array_equal(self._target_location, self._agent_location):
-            self._target_location = self.np_random.integers(0, [self.size_x, self.size_y], 
-                                                            dtype=np.int32)
+        # Reset the football to its initial position
+        self.football_position = self._get_football_initial_position()
 
         observation = self._get_obs()
         info = self._get_info()
@@ -200,7 +197,7 @@ class FootballPlay(gym.Env):
 
         # Terminate if the agent has tackled the target 
         # or if the max number of frames has been reached
-        terminated = np.array_equal(self._agent_location, self._target_location) or\
+        terminated = np.array_equal(self._agent_location, self.football_position) or\
                                                  self.current_frame >= self.max_frames
 
         # TODO: Reward function! How do we reward the agent?
@@ -320,17 +317,6 @@ class FootballPlay(gym.Env):
             ),
             int(pix_square_size_x / 2) + 5,
             width=3,  # Border thickness
-        )
-
-        # Draw the target
-        pygame.draw.circle(
-            canvas,
-            (255, 0, 0),  # Red color for the target
-            (
-                int(self._target_location[0] * pix_square_size_x + pix_square_size_x / 2),
-                int(self._target_location[1] * pix_square_size_y + pix_square_size_y / 2),
-            ),
-            int(pix_square_size_x / 2),
         )
 
         if self.render_mode == "human":
