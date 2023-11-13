@@ -186,7 +186,8 @@ class FootballPlay(gym.Env):
         for _, row in current_frame_df.iterrows():
             if pd.notna(row['nflId']):  # Check if it's a player and not the football
                 # Update positions in the DataFrame
-                self.players_positions_df.loc[self.players_positions_df['nflId'] == row['nflId'], ['x', 'y']] = row['x'], row['y']
+                self.players_positions_df.loc[self.players_positions_df['nflId'] == row['nflId'],\
+                                               ['x', 'y']] = row['x'], row['y']
             elif row['displayName'] == 'football':
                 self.football_position = np.array([row['x'], row['y']])
 
