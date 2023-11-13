@@ -20,9 +20,10 @@ class FootballPlay(gym.Env):
         self.agent_nflid = agent_nflid  # The nflId of the player controlled by the agent
 
         # Get initial positions of players and football,
-        # remove the agent player's movements from the dataframe
-        self.players_positions_df, self.df = self._get_initial_positions(df, agent_nflid)
+        # and also get the initial position of the agent
+        self.players_positions_df, self.df, self._initial_agent_location = self._get_initial_positions(df, agent_nflid)
         self.football_position = self._get_football_initial_position()
+
 
         # TODO: all dimensions, observation spaces, and action spaces
         # need to be adjusted; the granularity of the tracking data
@@ -73,6 +74,7 @@ class FootballPlay(gym.Env):
         Get the initial positions of the players, and remove
         the specified nflId's movements so the agent can assume
         control from that player's starting position.
+        Returns the players_positions_df, the modified df, and the _agent_location.
         '''
 
         initial_frame_df = df[df['frameId'] == 1]
@@ -84,20 +86,18 @@ class FootballPlay(gym.Env):
 
         # Extract the agent's initial location
         agent_initial_df = initial_frame_df[initial_frame_df['nflId'] == agent_nflid]
+        agent_location = np.array([0, 0], dtype=np.int32)  # Default agent location if not found
 
         if not agent_initial_df.empty:
-            self._agent_location = np.array([
+            agent_location = np.array([
                 agent_initial_df.iloc[0]['x'],
                 agent_initial_df.iloc[0]['y']
             ], dtype=np.int32)
-        else:
-            # Default agent location if not found
-            self._agent_location = np.array([0, 0], dtype=np.int32)
 
         # Remove the agent player's movements from the original dataframe
         df = df[df['nflId'] != agent_nflid]
 
-        return player_positions_df, df
+        return player_positions_df, df, agent_location
 
 
     def _get_football_initial_position(self):
@@ -141,19 +141,10 @@ class FootballPlay(gym.Env):
         '''
         Reset the environment to its initial state and return an initial observation.
         '''
-        # TODO: Can the agent's location variable be set in the __init__ method?
+        # Reset the agent to its initial position
+        self._agent_location = self._initial_agent_location.copy()
 
-        # Reset the agent's location to the starting position of the player with agent_nflid
-        initial_player_position = self.df[(self.df['frameId'] == 1) &\
-                                           (self.df['nflId'] == self.agent_nflid)]
-
-        if not initial_player_position.empty:
-            self._agent_location = np.array([initial_player_position.iloc[0]['x'],
-                                             initial_player_position.iloc[0]['y']], dtype=np.int32)
-        else:
-            # If the player is not found, default to the center of the field
-            self._agent_location = np.array([self.size_x / 2, self.size_y / 2], dtype=np.int32)
-
+        # The agent's location is already set in __init__, so we just use it directly
         self._target_location = self._agent_location
 
         while np.array_equal(self._target_location, self._agent_location):
