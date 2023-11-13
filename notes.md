@@ -15,11 +15,8 @@ Define "a tackle" using empirical data - how does the agent know when it's compl
 gracefully quit the pygame window, also make the pygame window able to go on top of or under other windows like a regular window
 #1 priority is defining a reward function after the enviornment is set up 
 
-is the agent actually starting in the right place?
 
 NEXT ON THE TO DO LIST:
 
-break it into smaller subclasses if that's a thing?
-
-
+Modularize the enviornment - the FootbalPlay class is so huge right now it's hard to work with
 PUT PLAYER POSITIONS IN RESET AND OBSERVATION FUNCTIONS, RIGHT NOW THEY DON'T ACTUALLY EXIST AS ANYTHING EXCEPT ANIMATIONS

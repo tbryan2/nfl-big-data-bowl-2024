@@ -141,6 +141,11 @@ class FootballPlay(gym.Env):
         '''
         Reset the environment to its initial state and return an initial observation.
         '''
+        # TODO: Priority #1, reset other player's to their initail positions as well
+        # Right now, the non-agent players are the football are just
+        # animations, not actually part of the environment.
+        # These will all also have to be part of the the _get_obs method
+
         # Reset the agent to its initial position
         self._agent_location = self._initial_agent_location.copy()
 
