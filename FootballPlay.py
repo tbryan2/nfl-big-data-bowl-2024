@@ -281,26 +281,26 @@ class FootballPlay(gym.Env):
                     canvas,
                     team_color2,
                     (int(row['x'] * pix_square_size_x), int(row['y'] * pix_square_size_y)),
-                    int(pix_square_size_x / 2) + 6  # Add 4 to make the circle bigger
+                    int(pix_square_size_x / 2) + 4  # Add 4 to make the circle bigger
                 )
                 # Outer circle (team_color2) as border
                 pygame.draw.circle(
                     canvas,
                     team_color,
                     (int(row['x'] * pix_square_size_x), int(row['y'] * pix_square_size_y)),
-                    int(pix_square_size_x / 2) + 2,
-                    width=1  # Border thickness
+                    int(pix_square_size_x / 2) + 5,
+                    width=3  # Border thickness
                 )
 
         # Draw the football using its updated position
         pygame.draw.circle(
             canvas,
-            (255, 165, 0),  # Orange color for the football
+            (139, 69, 19),
             (
                 int(self.football_position[0] * pix_square_size_x),
                 int(self.football_position[1] * pix_square_size_y),
             ),
-            int(pix_square_size_x / 4),
+            int(pix_square_size_x / 4) + 3,
         )
 
         # Draw the agent
@@ -311,7 +311,19 @@ class FootballPlay(gym.Env):
                 int(self._agent_location[0] * pix_square_size_x + pix_square_size_x / 2),
                 int(self._agent_location[1] * pix_square_size_y + pix_square_size_y / 2),
             ),
-            int(pix_square_size_x / 2),
+            int(pix_square_size_x / 2) + 4,
+        )
+
+        # Outer circle for the agent
+        pygame.draw.circle(
+            canvas,
+            (255, 255, 255),  # White color for the agent
+            (
+                int(self._agent_location[0] * pix_square_size_x + pix_square_size_x / 2),
+                int(self._agent_location[1] * pix_square_size_y + pix_square_size_y / 2),
+            ),
+            int(pix_square_size_x / 2) + 5,
+            width=3,  # Border thickness
         )
 
         # Draw the target
