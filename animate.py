@@ -46,6 +46,25 @@ def animate_play(df):
     ax.set_xlim(0, 120)
     ax.set_ylim(0, 53.3)
 
+    ax.set_title(
+        label='Game ID: ' + str(df['gameId'].values[0]) + ' Play ID: ' + str(df['playId'].values[0]), 
+        fontsize=12, 
+    )
+    fig.suptitle(
+        t=df['playDescription'].values[0], 
+        fontsize=12, 
+    )
+
+    # # line of scrimmage
+    # ax.vlines(
+    #     100 - df['yardlineNumber'].values[0] if df['yardlineSide'].values[0] != df['possessionTeam'].values[0] else df['yardlineNumber'].values[0], 
+    #     0, 
+    #     53.3, 
+    #     colors='black', 
+    #     linestyles='dashed', 
+    #     linewidth=1.5
+    # )
+
     player_colors = dict(df.drop_duplicates(subset=['displayName', 'team_color'], keep='first')[['displayName', 'team_color']].fillna({'team_color': 'brown'}).to_records(index=False))
     # Initialize player markers
     player_dots = {
@@ -67,7 +86,7 @@ def animate_play(df):
         
         return list(player_dots.values())
 
-    ani = animation.FuncAnimation(fig, update, frames=df['frameId'].unique(), interval=100, blit=True, repeat=False)
+    ani = animation.FuncAnimation(fig, update, frames=df['frameId'].unique(), interval=100, blit=True, repeat=True)
     return fig, ani
 
 class NFLPlayApp(tk.Tk):
@@ -77,7 +96,7 @@ class NFLPlayApp(tk.Tk):
         self.title("NFL Play Animation")
         self.geometry("800x600")
 
-        # Matcup Selection: Acts as Game ID
+        # Matchup Selection: Acts as Game ID
         self.matchup_label = ttk.Label(self, text="Select Matchup:")
         self.matchup_label.pack()
         self.matchup_combobox = ttk.Combobox(self, values=df['matchup'].unique().tolist(), state='readonly', width=50)
@@ -85,14 +104,30 @@ class NFLPlayApp(tk.Tk):
         self.matchup_combobox.bind("<<ComboboxSelected>>", self.update_play_desc_combobox)
 
         # Play Desc selection
-        self.play_desc_label = ttk.Label(self, text="Select Play ID:")
+        self.play_desc_label = ttk.Label(self, text="Select Play Description:")
         self.play_desc_label.pack()
         self.play_desc_combobox = ttk.Combobox(self, state='readonly', width=50)
         self.play_desc_combobox.pack()
 
         self.animate_button = ttk.Button(self, text="Animate Play", command=self.animate_play)
         self.animate_button.pack()
+
+        control_frame = ttk.Frame(self)
+        control_frame.pack()
+
+        # Playback control buttons packed in a row within the control frame
+        self.play_button = ttk.Button(control_frame, text="Play", command=self.play_animation)
+        self.play_button.pack(side=tk.LEFT)
+
+        self.pause_button = ttk.Button(control_frame, text="Pause", command=self.pause_animation)
+        self.pause_button.pack(side=tk.LEFT)
+
         self.canvas = None
+
+        # Animation control variables
+        self.animation = None
+        self.animation_running = False
+        self.animation_speed = 1.0  # 1x speed
 
     def update_play_desc_combobox(self, event):
         matchup = self.matchup_combobox.get()
@@ -103,12 +138,25 @@ class NFLPlayApp(tk.Tk):
         matchup = self.matchup_combobox.get()
         play_desc = self.play_desc_combobox.get()
         filtered_df = self.df[(self.df['matchup'] == matchup) & (self.df['playDescription'] == play_desc)]
-        fig, _ = animate_play(filtered_df)
+        fig, ani = animate_play(filtered_df)
         if self.canvas:
             self.canvas.get_tk_widget().pack_forget()
         self.canvas = FigureCanvasTkAgg(fig, master=self)
         self.canvas.draw()
         self.canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+
+        self.animation = ani  # Store the animation object
+        self.play_animation()  # Automatically start the animation
+
+    def play_animation(self):
+        if self.animation and not self.animation_running:
+            self.animation.event_source.start()
+            self.animation_running = True
+
+    def pause_animation(self):
+        if self.animation:
+            self.animation.event_source.stop()
+            self.animation_running = False
 
     def on_close(self):
         """ Close the application. """
