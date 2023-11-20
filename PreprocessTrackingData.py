@@ -1,4 +1,6 @@
 import pandas as pd
+from scipy.spatial import Delaunay
+
 
 class PreprocessTrackingData():
     '''
@@ -55,4 +57,12 @@ class PreprocessTrackingData():
         Return the fully processed data
         '''
 
+        return self.processed_data
+
+    def triangulate(self):
+        '''
+        Return processed data with Delaunay triangulation algorithm
+        '''
+        self.processed_data
+        #self.tri = Delaunay(points)
         return self.processed_data
