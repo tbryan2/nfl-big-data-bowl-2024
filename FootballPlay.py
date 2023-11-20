@@ -4,6 +4,7 @@ from gymnasium import spaces
 import numpy as np
 import pandas as pd
 import nfl_data_py as nfl
+import sys
 
 class FootballPlay(gym.Env):
     '''
@@ -41,6 +42,10 @@ class FootballPlay(gym.Env):
 
         # Window size for pygame rendering
         self.window_size = 512
+
+        # Initialize the font for rendering jersey numbers
+        pygame.font.init()
+        self.font = pygame.font.Font(None, 9)
 
         # TODO: Understand what "observation space means"
         # also, the target right now is based on the example custom space
@@ -286,6 +291,15 @@ class FootballPlay(gym.Env):
                     width=3  # Border thickness
                 )
 
+                # Render the jersey number
+                jersey_number = str(int(row['jerseyNumber']))
+                text_surface = self.font.render(jersey_number, True, (255, 255, 255))  # White color for text
+                text_rect = text_surface.get_rect(center=(
+                    int(row['x'] * pix_square_size_x),
+                    int(row['y'] * pix_square_size_y)
+                ))
+                canvas.blit(text_surface, text_rect)
+
         # Draw the football using its updated position
         pygame.draw.circle(
             canvas,
@@ -336,3 +350,4 @@ class FootballPlay(gym.Env):
         if self.window is not None:
             pygame.display.quit()
             pygame.quit()
+            #sys.exit(0)
