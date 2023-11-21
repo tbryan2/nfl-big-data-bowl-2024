@@ -1,3 +1,4 @@
 pandas
 matplotlib
 nfl-data-py
+scipy
