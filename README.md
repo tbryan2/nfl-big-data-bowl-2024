@@ -3,7 +3,7 @@
 ## Working Concept
 SWARM is a composite score of two elements:
 
-- The influence of a tackle on the outcome of a game; WPA for a tackle made a given x-coordinate
+- The influence of a tackle on the outcome of a game; WPA for a tackle made at a given x-coordinate
 - The probability of first impact occuring at a given point on the field; this probability is based on a multivariate Gaussian regression model
 
 Here are some visual breakdowns of the components of SWARM: 
