@@ -7,7 +7,7 @@ class PreprocessTrackingData():
     Filter the tracking data down to one play, join with the play data,
     and then join with player data on nflId and displayName, and colors data on club/team_abbr.
     '''
-    
+
     def __init__(self, tracking, plays, players, colors, gameId, playId):
          # Process and store the data when the instance is created
         self.gameId = gameId
@@ -16,7 +16,7 @@ class PreprocessTrackingData():
         self.plays = plays
         self.players = players
         self.colors = colors
-        self.processed_data = self.join_colors() 
+        self.processed_data = self.join_colors()
 
     def get_play(self):
         '''

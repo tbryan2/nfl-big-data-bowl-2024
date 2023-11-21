@@ -2,3 +2,5 @@ pandas
 matplotlib
 nfl-data-py
 scipy
+pygame
+gymnasium
