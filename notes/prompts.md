@@ -1,0 +1,5 @@
+# Estimating Point of Impact
+
+I'm building a model that uses NFL tracking data, which consists of several weeks of data with locations of each player for each play, partitioned into frames of around 20-70.
+
+There are several layes/models to get to the final product. The goal of the first model is to estimate the "point of impact", essentially output a heat map, that shows where defensive players should swarm to maximize the probability of a tackle or minimize yards gained. I'm having trouble conceptualizing how to represent the density of defensive players relative to the ball carrier considering there's only 11 defensive players on the field so the data is sparse. Also estimating what that "impact point" might be since there isn't any label for that besides the positions of the players relative to the ball carrier.
