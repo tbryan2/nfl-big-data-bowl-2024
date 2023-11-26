@@ -1,15 +1,21 @@
 from src.reinforcement_learning.preprocess_tracking_data import PreprocessTrackingData
 from src.reinforcement_learning.football_play import FootballPlay
+from config import (
+    TRACKING_DATA_URL,
+    PLAYS_URL,
+    PLAYERS_URL,
+    COLORS_URL
+)
 import pandas as pd
 
 gameId = 2022090800
 playId = 56
 nflId = 38577
 
-tracking = pd.read_csv("https://bigdatabowl2023.nyc3.cdn.digitaloceanspaces.com/raw/tracking_data/tracking_week_1.csv")
-plays = pd.read_csv("https://bigdatabowl2023.nyc3.cdn.digitaloceanspaces.com/raw/plays.csv")
-players = pd.read_csv("https://bigdatabowl2023.nyc3.cdn.digitaloceanspaces.com/raw/players.csv")
-colors = pd.read_csv("https://bigdatabowl2023.nyc3.cdn.digitaloceanspaces.com/raw/colors.csv")
+tracking = pd.read_csv(TRACKING_DATA_URL.format(week=1))
+plays = pd.read_csv(PLAYS_URL)
+players = pd.read_csv(PLAYERS_URL)
+colors = pd.read_csv(COLORS_URL)
 
 preprocessor = PreprocessTrackingData(tracking, plays, players, colors, gameId, playId)
 play_data = preprocessor.get_processed_data()
