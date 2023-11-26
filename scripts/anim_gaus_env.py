@@ -5,7 +5,7 @@ from matplotlib import pyplot as plt
 from matplotlib.animation import FuncAnimation
 
 # Load data
-df = pd.read_csv('example_play.csv')
+df = pd.read_csv('data/example_play.csv')
 
 # Function to apply color based on the club
 def apply_coloring(x):

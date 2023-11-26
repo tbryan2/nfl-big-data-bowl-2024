@@ -3,8 +3,6 @@ import gymnasium as gym
 from gymnasium import spaces
 import numpy as np
 import pandas as pd
-import nfl_data_py as nfl
-import sys
 
 class FootballPlay(gym.Env):
     '''
@@ -69,7 +67,6 @@ class FootballPlay(gym.Env):
         self.max_frames = max_frames
         self.current_frame = 0
 
-        assert render_mode is None or render_mode in self.metadata["render_modes"]
         self.render_mode = render_mode
 
         self.window = None
