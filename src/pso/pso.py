@@ -164,7 +164,6 @@ class PSODefense:
 
             self.optimize_frame()
 
-
             self.positions_history.append(self.positions.copy())
             self.velocities_history.append(self.velocities.copy())
             self.personal_best_positions_history.append(self.personal_best_positions.copy())
