@@ -171,7 +171,7 @@ class PSODefense:
             self.global_best_score_history.append(self.global_best_score)
             self.global_best_position_history.append(self.global_best_position.copy())
 
-    def animate_play(self):
+    def animate_play(self, save_fig=False):
         fig, ax = plt.subplots()
         ax.set_xlim(self.xmin, self.xmax)
         ax.set_ylim(self.ymin, self.ymax)
