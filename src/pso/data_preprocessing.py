@@ -1,6 +1,6 @@
 import pandas as pd
 import os
-from config import TRACKING_DATA_URL, PLAYS_URL
+from config import TRACKING_DATA_URL, PLAYS_URL, PLAYERS_URL
 
 def get_preprocessed_tracking_data(
     week_num: int = 1,
@@ -30,6 +30,7 @@ def get_preprocessed_tracking_data(
     # if the file does not exist, get src, preprocess, and save it
     tracking_data = pd.read_csv(TRACKING_DATA_URL.format(week=week_num))
     plays = pd.read_csv(PLAYS_URL)
+    players = pd.read_csv(PLAYERS_URL)
 
     tracking_data = tracking_data.loc[(tracking_data['gameId'] == game_id) & (tracking_data['playId'] == play_id)]
     tracking_data['time'] = pd.to_datetime(tracking_data['time'])
@@ -52,6 +53,8 @@ def get_preprocessed_tracking_data(
     tracking_data['ball_carrier_id'] = ball_carrier_id
     tracking_data['off_abbr'] = off_abbr
     tracking_data['def_abbr'] = def_abbr
+
+    tracking_data = tracking_data.merge(players[['nflId', 'position']], on='nflId', how='left')
 
     # save the file
     tracking_data.to_csv(file_path, index=False)
