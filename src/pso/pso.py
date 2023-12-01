@@ -8,19 +8,6 @@ import logging
 from matplotlib.animation import FuncAnimation
 from matplotlib.colors import ListedColormap
 
-# format logger with method name, line number, and message
-def minimize_distance_to_ball_carrier(positions: np.ndarray, ball_carrier_position: np.ndarray) -> np.ndarray:
-    """Objective function that minimizes the distance between the ball carrier and the defense
-
-    Args:
-        positions (np.ndarray): Array of positions of the defense
-        ball_carrier_position (np.ndarray): Position of the ball carrier
-
-    Returns:
-        np.ndarray: Array of distances between the ball carrier and the defense
-    """
-    return np.linalg.norm(positions - ball_carrier_position, axis=1)
-    
 class PSODefense:
     def __init__(
         self, 
@@ -29,7 +16,13 @@ class PSODefense:
         def_abbr: str, 
         off_abbr: str,
         ball_carrier_id: int,
-        move_particles: list[int] = []
+        move_particles: list[int] = [],
+        w: float = 0.1,
+        c1: float = 2,
+        c2: float = 0.2,
+        num_iterations: int = 10_000,
+        min_velocity: float = -0.3,
+        max_velocity: float = 0.3
     ):
 
         # objective function and param setting
@@ -57,8 +50,8 @@ class PSODefense:
         self.xmax = 120  # Including endzones
         self.ymax = 53.3  # Standard width of a football field
         self.ymin = 0
-        self.min_velocity = -0.3
-        self.max_velocity = 0.3
+        self.min_velocity = min_velocity
+        self.max_velocity = max_velocity
 
         self.num_particles = len(self.play.loc[self.play['club'] == def_abbr].nflId.unique())
         self.num_dimensions = 2
@@ -88,10 +81,10 @@ class PSODefense:
         self.global_best_position_history = [self.global_best_position.copy()]
 
         # hyper parameters
-        self.w = 1
-        self.c1 = 2
-        self.c2 = 0.2
-        self.num_iterations = 10_000
+        self.w = w
+        self.c1 = c1
+        self.c2 = c2
+        self.num_iterations = num_iterations
         
         # logging
         logging.basicConfig(
@@ -162,9 +155,14 @@ class PSODefense:
 
             self.logger.info(f'Optimizing frame {self.frame_id}')
 
-            self.optimize_frame()
-
             self.objective_function_params['ball_carrier_position'] = frame.loc[frame['nflId'] == self.ball_carrier_id][['x', 'y']].values[0]
+            self.logger.info(f'Ball carrier position: {self.objective_function_params["ball_carrier_position"]}')
+
+            # reset global best score and position
+            self.global_best_score = np.inf
+            self.global_best_position = np.full(self.num_dimensions, np.nan)
+
+            self.optimize_frame()
 
             self.positions_history.append(self.positions.copy())
             self.velocities_history.append(self.velocities.copy())
@@ -227,21 +225,6 @@ class PSODefense:
         plt.show()
 
         if save_fig:
-            ani.save('img/animation.gif', writer='imagemagick')
-
-    
-if __name__ == '__main__':
-    df = pd.read_csv('data/example_play.csv')
-    pso = PSODefense(
-        play=df, 
-        objective_function=minimize_distance_to_ball_carrier, 
-        def_abbr='SF', 
-        off_abbr='CHI', 
-        ball_carrier_id=53646.,
-        move_particles=[0]  # Assuming only one particle is set to move
-    )
-    
-    pso.optimize_play()
-    pso.animate_play(save_fig=True)
+            ani.save('img/animation.gif', writer='imagemagick')    
 
 
