@@ -1,7 +1,10 @@
 import numpy as np
 
 # format logger with method name, line number, and message
-def minimize_distance_to_ball_carrier(positions: np.ndarray, ball_carrier_position: np.ndarray) -> np.ndarray:
+def minimize_distance_to_ball_carrier(
+        positions: np.ndarray, 
+        ball_carrier_position: np.ndarray
+    ) -> np.ndarray:
     """Objective function that minimizes the distance between the ball carrier and the defense
 
     Args:
