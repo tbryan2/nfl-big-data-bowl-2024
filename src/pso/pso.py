@@ -70,6 +70,9 @@ class PSODefense:
         ball_carrier_frames = self.play.loc[self.play['nflId'] == self.ball_carrier_id].groupby('frameId')
         self.target_positions = np.array([frame.loc[frame['nflId'] == self.ball_carrier_id][['x', 'y']].values[0] for _, frame in ball_carrier_frames])
 
+        obstacle_frames = self.play.loc[(self.play['club'] == off_abbr) & (self.play['nflId'] != ball_carrier_id)].groupby('frameId')
+        self.obstacles = np.array([frame[['x', 'y']].to_numpy() for _, frame in obstacle_frames])
+
         # initialize the positions and velocities of the particles
         # these are the positions and particles that will be updated by method self.optimize_frame
         self.positions = self.play.loc[(self.play.nflId.isin(agents)) & (self.play['frameId'] == 1)][['x', 'y']].values
@@ -164,38 +167,43 @@ class PSODefense:
         lines = [ax.plot([], [], '-', label=f'Agent {i}')[0] for i in range(self.num_particles)]
         ball_carrier_line, = ax.plot([], [], '-', color='red', label='Ball Carrier')
 
+        # Scatter plot for obstacles
+        obstacle_scatter = ax.scatter([], [], s=40, c='blue', label='Obstacles')  # Adjust size and color as needed
+
         # Setting up legend
         ax.legend()
 
         def init():
-            # Initialize empty lines
+            # Initialize empty lines and scatter plot
             for line in lines:
                 line.set_data([], [])
             ball_carrier_line.set_data([], [])
-            return lines + [ball_carrier_line]
+            obstacle_scatter.set_offsets([])  # Empty data for scatter plot
+            return lines + [ball_carrier_line, obstacle_scatter]
 
         def animate(frame):
             # Ensure there is data to plot
             if frame == 0:
-                return lines + [ball_carrier_line]
+                return lines + [ball_carrier_line, obstacle_scatter]
 
-            # Update the positions for each agent with smoothing
+            # Update the positions for each agent
             for i, line in enumerate(lines):
                 if frame < len(self.positions_history):
-                    # Apply smoothing only if there are enough data points
                     smoothed_positions = self.exponential_smoothing(self.positions_history[:frame+1, i], alpha=0.04)
                     line.set_data(smoothed_positions[:, 0], smoothed_positions[:, 1])
 
             # Update the position for the ball carrier
             ball_carrier_line.set_data(self.target_positions[:frame+1, 0], self.target_positions[:frame+1, 1])
 
-            return lines + [ball_carrier_line]
+            # Update obstacle positions
+            if frame < len(self.obstacles):
+                obstacle_positions = self.obstacles[frame]
+                obstacle_scatter.set_offsets(obstacle_positions)
 
-        # ... [rest of the animate_play method]
+            return lines + [ball_carrier_line, obstacle_scatter]
 
-        anim = FuncAnimation(fig, animate, init_func=init, frames=len(self.positions_history), interval=100, blit=True)
+        # Create the animation
+        anim = FuncAnimation(fig, animate, init_func=init, frames=len(self.obstacles), interval=100, blit=True)
+
         plt.show()
         return anim
-
-
-
