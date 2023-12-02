@@ -1,5 +1,6 @@
 from src.pso.pso import PSODefense
 from src.pso.objective_functions import minimize_distance_to_ball_carrier
+from src.pso.penalty_function import penalty_function
 from src.pso.data_preprocessing import get_preprocessed_tracking_data
 import pandas as pd
 import numpy as np
@@ -17,7 +18,8 @@ def_abbr = data['def_abbr']
 
 pso = PSODefense(
     play=df, 
-    objective_function=minimize_distance_to_ball_carrier, 
+    objective_function=minimize_distance_to_ball_carrier,
+    penalty_function=penalty_function,
     def_abbr=def_abbr, 
     off_abbr=off_abbr, 
     ball_carrier_id=ball_carrier_id,
@@ -26,9 +28,11 @@ pso = PSODefense(
     c1=1,
     c2=2,
     num_iterations=1000,
-    min_velocity=-0.6,
-    max_velocity=0.6,
-    time_weighting_factor=100
+    min_velocity=-5,
+    max_velocity=5,
+    time_weighting_factor=1,
+    max_penalty=1500,
+    safe_distance=10
 )
 
 pso.optimize()

@@ -15,7 +15,8 @@ class PSODefense:
         self, 
         play: pd.DataFrame, 
         objective_function: Callable,
-        def_abbr: str, 
+        penalty_function: Callable,
+        def_abbr: str,
         off_abbr: str,
         ball_carrier_id: int,
         agents: list[int],
@@ -25,7 +26,9 @@ class PSODefense:
         num_iterations: int = 10_000,
         min_velocity: float = -0.3,
         max_velocity: float = 0.3,
-        time_weighting_factor: int = 3
+        time_weighting_factor: int = 3,
+        safe_distance: float = 1,
+        max_penalty: float = 100,
     ):
 
         # objective function and param setting
@@ -35,8 +38,17 @@ class PSODefense:
             'ball_carrier_position': initial_ball_carrier_position
         }
 
+        # penalty function and param setting
+        self.penalty_function = penalty_function
+        self.max_penalty = max_penalty
+        self.safe_distance = safe_distance
+        self.penalty_function_params = {
+            'max_penalty': max_penalty,
+            'safe_distance': safe_distance
+        }
+
         # DataFrame of the play
-        self.play = play.sort_values(by=['frameId', 'nflId']) 
+        self.play = play.sort_values(by=['frameId', 'nflId'])
 
         # metadata
         self.num_frames = len(play.frameId.unique())
@@ -56,6 +68,8 @@ class PSODefense:
         self.max_velocity = max_velocity
 
         self.time_weighting_factor = time_weighting_factor
+
+        self.safe_distance = safe_distance
 
         self.num_particles = len(agents)
         self.num_dimensions = 2
@@ -120,8 +134,8 @@ class PSODefense:
             for i in range(self.num_particles):
                 # Update velocity for each particle
                 self.velocities[i] = (self.w * self.velocities[i] +
-                                      self.c1 * random.random() * (self.personal_best_positions[i] - self.positions[i]) +
-                                      self.c2 * random.random() * (self.global_best_position - self.positions[i]))
+                                    self.c1 * random.random() * (self.personal_best_positions[i] - self.positions[i]) +
+                                    self.c2 * random.random() * (self.global_best_position - self.positions[i]))
 
                 # Clip velocity to its bounds
                 self.velocities[i] = np.clip(self.velocities[i], self.min_velocity, self.max_velocity)
@@ -131,30 +145,40 @@ class PSODefense:
                 self.positions[i] = np.clip(self.positions[i], [self.xmin, self.ymin], [self.xmax, self.ymax])
 
                 cumulative_distance = 0
+                obstacle_penalty = 0
                 total_frames = len(self.target_positions)
-                for frame_index, ball_carrier_pos in enumerate(self.target_positions):
+                for frame_index, (ball_carrier_pos, obstacle_positions) in enumerate(zip(self.target_positions, self.obstacles)):
                     # Increasing weight for later frames (e.g., linearly increasing)
-                    time_weight = (frame_index**self.time_weighting_factor + 1) / total_frames
+                    time_weight = (frame_index ** self.time_weighting_factor + 1) / total_frames
                     cumulative_distance += time_weight * np.linalg.norm(self.positions[i] - ball_carrier_pos)
 
-                # Update personal and global bests using cumulative distance
-                if cumulative_distance < self.personal_best_scores[i]:
-                    self.personal_best_scores[i] = cumulative_distance
+                    # Obstacle avoidance penalty (no time weighting)
+                    for obstacle_pos in obstacle_positions:
+                        distance_to_obstacle = np.linalg.norm(self.positions[i] - obstacle_pos)
+                        if distance_to_obstacle < self.safe_distance:  # Define a threshold for 'too close'
+                            obstacle_penalty += self.penalty_function(distance_to_obstacle, **self.penalty_function_params) 
+
+                total_cost = cumulative_distance + obstacle_penalty
+
+                # Update personal and global bests using total cost
+                if total_cost < self.personal_best_scores[i]:
+                    self.personal_best_scores[i] = total_cost
                     self.personal_best_positions[i] = self.positions[i].copy()
 
-                if cumulative_distance < self.global_best_score:
-                    self.global_best_score = cumulative_distance
+                if total_cost < self.global_best_score:
+                    self.global_best_score = total_cost
                     self.global_best_position = self.positions[i].copy()
 
-            # History update for each iteration
-            self.positions_history = np.append(self.positions_history, [self.positions.copy()], axis=0)
-            self.velocities_history = np.append(self.velocities_history, [self.velocities.copy()], axis=0)
-            self.personal_best_positions_history = np.append(self.personal_best_positions_history, [self.personal_best_positions.copy()], axis=0)
-            self.personal_best_scores_history = np.append(self.personal_best_scores_history, [self.personal_best_scores.copy()], axis=0)
-            self.global_best_score_history = np.append(self.global_best_score_history, [self.global_best_score])
-            self.global_best_position_history = np.append(self.global_best_position_history, [self.global_best_position.copy()], axis=0)
-        
+                # History update for each iteration
+                self.positions_history = np.append(self.positions_history, [self.positions.copy()], axis=0)
+                self.velocities_history = np.append(self.velocities_history, [self.velocities.copy()], axis=0)
+                self.personal_best_positions_history = np.append(self.personal_best_positions_history, [self.personal_best_positions.copy()], axis=0)
+                self.personal_best_scores_history = np.append(self.personal_best_scores_history, [self.personal_best_scores.copy()], axis=0)
+                self.global_best_score_history = np.append(self.global_best_score_history, [self.global_best_score])
+                self.global_best_position_history = np.append(self.global_best_position_history, [self.global_best_position.copy()], axis=0)
+        print(f'Global Best Score: {self.global_best_score}')
         return self.global_best_position, self.global_best_score
+
 
     def animate_play(self):
         fig, ax = plt.subplots(figsize=(12, 7))
