@@ -33,6 +33,11 @@ def get_preprocessed_tracking_data(
     players = pd.read_csv(PLAYERS_URL)
 
     tracking_data = tracking_data.loc[(tracking_data['gameId'] == game_id) & (tracking_data['playId'] == play_id)]
+
+    # Create a column for when the ball arrived to the ball carrier
+    # based on the frameId where event_type == 'pass_outcome_caught' || 'handoff'
+    tracking_data['ball_arrived'] = tracking_data.loc[(tracking_data['event'] == 'pass_outcome_caught') | (tracking_data['event'] == 'handoff')]['frameId'].iloc[0]
+    
     tracking_data['time'] = pd.to_datetime(tracking_data['time'])
     # shift, x, y, and time
     tracking_data[['x_shifted', 'y_shifted', 'time_shifted']] = tracking_data.groupby(['nflId'], as_index=False)[['x', 'y', 'time']].shift(1)
