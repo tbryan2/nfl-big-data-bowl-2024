@@ -12,12 +12,13 @@ import sys
 
 class PSODefense:
     def __init__(
-        self, 
-        play: pd.DataFrame, 
+        self,
+        play: pd.DataFrame,
         objective_function: Callable,
-        def_abbr: str, 
+        def_abbr: str,
         off_abbr: str,
         ball_carrier_id: int,
+        ball_arrived_frame: int,
         agents: list[int],
         w: float = 0.1,
         c1: float = 2,
@@ -30,7 +31,8 @@ class PSODefense:
 
         # objective function and param setting
         self.objective_function = objective_function
-        initial_ball_carrier_position = play.loc[(play['frameId'] == 1) & (play['nflId'] == ball_carrier_id)][['x', 'y']].values[0]
+        initial_ball_carrier_position = \
+        play.loc[(play['frameId'] == ball_arrived_frame) & (play['nflId'] == ball_carrier_id)][['x', 'y']].values[0]
         self.objective_function_params = {
             'ball_carrier_position': initial_ball_carrier_position
         }
