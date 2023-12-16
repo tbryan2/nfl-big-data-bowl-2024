@@ -21,14 +21,14 @@ pso = PSODefense(
     def_abbr=def_abbr, 
     off_abbr=off_abbr, 
     ball_carrier_id=ball_carrier_id,
-    agents=[44925, 54513],
+    positional_group='linebackers',
     w=1,
     c1=1,
     c2=2,
     num_iterations=1000,
     min_velocity=-0.6,
     max_velocity=0.6,
-    time_weighting_factor=100
+    time_weighting_factor=1
 )
 
 pso.optimize()

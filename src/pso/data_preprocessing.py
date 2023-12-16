@@ -64,6 +64,9 @@ def get_preprocessed_tracking_data(
     # Filter to after the ball arrived to the ball carrier
     tracking_data = tracking_data.loc[tracking_data['frameId'] >= tracking_data['ball_arrived']]
 
+    # Reset the frameId to start at 1
+    tracking_data['frameId'] = tracking_data['frameId'] - tracking_data['frameId'].min() + 1
+
     # save the file
     tracking_data.to_csv(file_path, index=False)
 

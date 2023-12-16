@@ -18,7 +18,7 @@ class PSODefense:
         def_abbr: str, 
         off_abbr: str,
         ball_carrier_id: int,
-        agents: list[int],
+        positional_group: str, # options: 'safties' = 'FS', 'SS', 'linebackers' = 'MLB', 'OLB', 'ILB', 'cornerbacks' = 'CB', 'secondary' = 'FS', 'SS', 'CB'
         w: float = 0.1,
         c1: float = 2,
         c2: float = 0.2,
@@ -44,8 +44,18 @@ class PSODefense:
         self.off_abbr = off_abbr
         self.ball_carrier_id = int(ball_carrier_id)
         
-        # list of agents that should be allowed to move
-        self.agents = agents
+        # positional group
+        if positional_group == 'safeties':
+            self.positional_group = ['FS', 'SS']
+        elif positional_group == 'linebackers':
+            self.positional_group = ['MLB', 'OLB', 'ILB']
+        elif positional_group == 'cornerbacks':
+            self.positional_group = ['CB']
+        elif positional_group == 'secondary':
+            self.positional_group = ['FS', 'SS', 'CB']
+
+        # agents
+        self.agents = self.play.loc[self.play['position'].isin(self.positional_group)]['nflId'].unique()
 
         # constraints
         self.xmin = 0
@@ -54,16 +64,15 @@ class PSODefense:
         self.ymin = 0
         self.min_velocity = min_velocity
         self.max_velocity = max_velocity
-
         self.time_weighting_factor = time_weighting_factor
 
-        self.num_particles = len(agents)
+        self.num_particles = len(self.agents)
         self.num_dimensions = 2
 
         # this represents the actual x and y positions of the particles
         # not the positions that will be updated by method self.optimize_frame
         # group by frame and then convert 
-        particle_frames = self.play.loc[self.play.nflId.isin(agents)].groupby('frameId')
+        particle_frames = self.play.loc[self.play.nflId.isin(self.agents)].groupby('frameId')
         self.actual_particle_positions = np.array([frame[['x', 'y']].to_numpy() for _, frame in particle_frames])
         self.actual_velocities = np.array([frame[['x_velocity', 'y_velocity']].to_numpy() for _, frame in particle_frames])
 
@@ -72,7 +81,7 @@ class PSODefense:
 
         # initialize the positions and velocities of the particles
         # these are the positions and particles that will be updated by method self.optimize_frame
-        self.positions = self.play.loc[(self.play.nflId.isin(agents)) & (self.play['frameId'] == 1)][['x', 'y']].values
+        self.positions = self.play.loc[(self.play.nflId.isin(self.agents)) & (self.play['frameId'] == 1)][['x', 'y']].values
         
         self.velocities = np.zeros((self.num_particles, self.num_dimensions))
         self.personal_best_positions = self.positions.copy()
