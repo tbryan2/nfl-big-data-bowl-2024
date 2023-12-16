@@ -1,14 +1,10 @@
 import pandas as pd
 import numpy as np
-from scipy.interpolate import RegularGridInterpolator
-from scipy.stats import gaussian_kde, multivariate_normal
 from matplotlib import pyplot as plt
 from typing import Callable
 import logging
 from matplotlib.animation import FuncAnimation
-from matplotlib.colors import ListedColormap
 import random
-import sys
 
 class PSODefense:
     def __init__(
@@ -25,15 +21,9 @@ class PSODefense:
         num_iterations: int = 10_000,
         min_velocity: float = -0.3,
         max_velocity: float = 0.3,
-        time_weighting_factor: int = 3
+        time_weighting_factor: int = 3,
+        obstacle_avoidance_factor: float = 1.0
     ):
-
-        # objective function and param setting
-        self.objective_function = objective_function
-        initial_ball_carrier_position = play.loc[(play['frameId'] == 1) & (play['nflId'] == ball_carrier_id)][['x', 'y']].values[0]
-        self.objective_function_params = {
-            'ball_carrier_position': initial_ball_carrier_position
-        }
 
         # DataFrame of the play
         self.play = play.sort_values(by=['frameId', 'nflId']) 
@@ -64,10 +54,12 @@ class PSODefense:
         self.ymin = 0
         self.min_velocity = min_velocity
         self.max_velocity = max_velocity
-        self.time_weighting_factor = time_weighting_factor
 
         self.num_particles = len(self.agents)
         self.num_dimensions = 2
+
+        self.time_weighting_factor = time_weighting_factor
+        self.obstacle_avoidance_factor = obstacle_avoidance_factor
 
         # this represents the actual x and y positions of the particles
         # not the positions that will be updated by method self.optimize_frame
@@ -76,8 +68,19 @@ class PSODefense:
         self.actual_particle_positions = np.array([frame[['x', 'y']].to_numpy() for _, frame in particle_frames])
         self.actual_velocities = np.array([frame[['x_velocity', 'y_velocity']].to_numpy() for _, frame in particle_frames])
 
+        self.actual_obstacle_positions = np.array([self.play.loc[(self.play.frameId == frame_id) & \
+            (self.play.club == self.off_abbr)][['x', 'y']].to_numpy() for frame_id in self.play.frameId.unique()])
+
         ball_carrier_frames = self.play.loc[self.play['nflId'] == self.ball_carrier_id].groupby('frameId')
         self.target_positions = np.array([frame.loc[frame['nflId'] == self.ball_carrier_id][['x', 'y']].values[0] for _, frame in ball_carrier_frames])
+        # objective function and param setting
+        self.objective_function = objective_function
+        self.objective_function_params = {
+            'target_positions': self.target_positions,
+            'obstacle_positions': self.actual_obstacle_positions,
+            'time_weighting_factor': self.time_weighting_factor,
+            'obstacle_avoidance_factor': self.obstacle_avoidance_factor
+        }
 
         # initialize the positions and velocities of the particles
         # these are the positions and particles that will be updated by method self.optimize_frame
@@ -122,7 +125,7 @@ class PSODefense:
         return smoothed_series
 
     def optimize(self):
-        for iteration in range(self.num_iterations):
+        for _ in range(self.num_iterations):
             for i in range(self.num_particles):
                 # Update velocity for each particle
                 self.velocities[i] = (self.w * self.velocities[i] +
@@ -136,20 +139,15 @@ class PSODefense:
                 self.positions[i] += self.velocities[i]
                 self.positions[i] = np.clip(self.positions[i], [self.xmin, self.ymin], [self.xmax, self.ymax])
 
-                cumulative_distance = 0
-                total_frames = len(self.target_positions)
-                for frame_index, ball_carrier_pos in enumerate(self.target_positions):
-                    # Increasing weight for later frames (e.g., linearly increasing)
-                    time_weight = (frame_index**self.time_weighting_factor + 1) / total_frames
-                    cumulative_distance += time_weight * np.linalg.norm(self.positions[i] - ball_carrier_pos)
+                cost = self.objective_function(self.positions[i], self.velocities[i], **self.objective_function_params)
 
                 # Update personal and global bests using cumulative distance
-                if cumulative_distance < self.personal_best_scores[i]:
-                    self.personal_best_scores[i] = cumulative_distance
+                if cost < self.personal_best_scores[i]:
+                    self.personal_best_scores[i] = cost
                     self.personal_best_positions[i] = self.positions[i].copy()
 
-                if cumulative_distance < self.global_best_score:
-                    self.global_best_score = cumulative_distance
+                if cost < self.global_best_score:
+                    self.global_best_score = cost
                     self.global_best_position = self.positions[i].copy()
 
             # History update for each iteration
