@@ -25,15 +25,11 @@ def minimize_distance_to_ball_carrier_with_obstacle_avoidance(
         obstacle_avoidance_factor: float=1.0
     ) -> float:
 
-    target_distances = []
     obstacle_weights = []
     total_frames = len(target_positions)
 
     # Calculate distances to target and obstacles for each frame
     for frame_index in range(total_frames):
-        # Distance to target
-        target_distance = np.linalg.norm(particle_position - target_positions[frame_index])
-        target_distances.append(target_distance)
 
         # Weight for each obstacle
         future_particle_position = particle_position + particle_velocity * (frame_index + 1)
@@ -46,11 +42,11 @@ def minimize_distance_to_ball_carrier_with_obstacle_avoidance(
 
         obstacle_weights.append(np.array(current_frame_obstacle_weights))
     
-    target_distances = np.array(target_distances).reshape(-1, 1)
+    target_weights = np.linalg.norm(target_positions - particle_position, axis=1).reshape(-1, 1)
+    # fill nas with 0
+    target_weights = np.nan_to_num(target_weights).sum()
     obstacle_weights = np.array(obstacle_weights).reshape(total_frames, -1)
 
-    # normalize the target distances
-    normalized_target_distances = target_distances / np.max(target_distances)
     # normalize the obstacle weights
     normalized_obstacle_weights = obstacle_weights / np.max(obstacle_weights)
 
@@ -61,7 +57,8 @@ def minimize_distance_to_ball_carrier_with_obstacle_avoidance(
     penalty = np.sum(weighted_obstacle_weights)
 
     exp_weighting = np.power(np.arange(1, total_frames + 1), time_weighting_factor+1).reshape(-1, 1) / total_frames
-    weighted_target_importance = normalized_target_distances * exp_weighting
+    weighted_target_importance = target_weights * exp_weighting
+
     reward = np.sum(weighted_target_importance)
     print('Reward: ', reward, 'Penalty: ', penalty, 'Total: ', reward - penalty)
     return reward - penalty

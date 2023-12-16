@@ -5,6 +5,7 @@ from typing import Callable
 import logging
 from matplotlib.animation import FuncAnimation
 import random
+from src.pso.target_selection import select_common_target
 
 class PSODefense:
     def __init__(
@@ -73,11 +74,18 @@ class PSODefense:
 
         ball_carrier_frames = self.play.loc[self.play['nflId'] == self.ball_carrier_id].groupby('frameId')
         self.target_positions = np.array([frame.loc[frame['nflId'] == self.ball_carrier_id][['x', 'y']].values[0] for _, frame in ball_carrier_frames])
+
+        # calculate the target location
+        self.best_target, self.best_target_idx = select_common_target(self.actual_particle_positions[0], self.target_positions, w_theta=1)
+        # mask for the ball carrier positions
+        self.best_targets = np.full((self.num_frames, 2), np.nan)
+        self.best_targets[self.best_target_idx] = self.best_target
+
         # objective function and param setting
         self.objective_function = objective_function
         self.objective_function_params = {
-            'target_positions': self.target_positions,
             'obstacle_positions': self.actual_obstacle_positions,
+            'target_positions': self.best_targets,
             'time_weighting_factor': self.time_weighting_factor,
             'obstacle_avoidance_factor': self.obstacle_avoidance_factor
         }
@@ -90,6 +98,7 @@ class PSODefense:
         self.personal_best_positions = self.positions.copy()
         self.personal_best_scores = np.full(self.num_particles, np.inf)
         self.global_best_score = np.inf
+
         # note: not sure why np.nan did not work here, but np.zeros did
         # check back later
         self.global_best_position = np.zeros(self.num_dimensions)
