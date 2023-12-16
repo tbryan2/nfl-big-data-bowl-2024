@@ -1,6 +1,6 @@
 import numpy as np
 
-def select_common_target_modified(particle_positions, candidate_targets, theta_max, w_d=1.0, w_theta=1.0):
+def select_common_target(particle_positions, candidate_targets, theta_max=30, w_d=1.0, w_theta=1.0):
     best_score = np.inf
     best_target = None
     best_target_index = -1  # Variable to store the index of the best target
