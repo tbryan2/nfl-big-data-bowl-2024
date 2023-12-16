@@ -21,22 +21,15 @@ pso = PSODefense(
     def_abbr=def_abbr, 
     off_abbr=off_abbr, 
     ball_carrier_id=ball_carrier_id,
-    positional_group='linebackers',
+    positional_group='cornerbacks',
     w=1,
     c1=1,
     c2=2,
-<<<<<<< HEAD
-    num_iterations=1000,
-    min_velocity=-0.6,
-    max_velocity=0.6,
-    time_weighting_factor=1
-=======
     num_iterations=1_000,
     min_velocity=-0.5,
     max_velocity=0.5,
     time_weighting_factor=3,
     obstacle_avoidance_factor=1.0
->>>>>>> obstacle-avoidance
 )
 pso.optimize()
-print(pso.positions_history.shape)
+pso.animate_play()
