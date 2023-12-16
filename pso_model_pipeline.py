@@ -1,10 +1,8 @@
 from src.pso.pso import PSODefense
 from src.pso.objective_functions import minimize_distance_to_ball_carrier
 from src.pso.data_preprocessing import get_preprocessed_tracking_data
-from config import TRACKING_DATA_URL, PLAYS_URL, PLAYERS_URL
+from config import TRACKING_DATA_URL
 import pandas as pd
-import numpy as np
-import tqdm
 
 
 # Step 1: Loop through all the plays within a game and prepreprocess the data

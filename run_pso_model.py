@@ -7,7 +7,7 @@ from src.pso.data_preprocessing import get_preprocessed_tracking_data
 data = get_preprocessed_tracking_data(
     week_num=1, 
     game_id=2022091102, 
-    play_id=921
+    play_id=2065
 )
 
 df = data['df']
@@ -21,13 +21,13 @@ pso = PSODefense(
     def_abbr=def_abbr, 
     off_abbr=off_abbr, 
     ball_carrier_id=ball_carrier_id,
-    positional_group='cornerbacks',
+    positional_group='secondary',
     w=1,
     c1=1,
     c2=2,
-    num_iterations=1_000,
-    min_velocity=-0.5,
-    max_velocity=0.5,
+    num_iterations=10_000,
+    min_velocity=-2,
+    max_velocity=2,
     time_weighting_factor=3,
     obstacle_avoidance_factor=1.0
 )
