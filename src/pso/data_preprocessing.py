@@ -61,6 +61,9 @@ def get_preprocessed_tracking_data(
 
     tracking_data = tracking_data.merge(players[['nflId', 'position']], on='nflId', how='left')
 
+    # Filter to after the ball arrived to the ball carrier
+    tracking_data = tracking_data.loc[tracking_data['frameId'] >= tracking_data['ball_arrived']]
+
     # save the file
     tracking_data.to_csv(file_path, index=False)
 
