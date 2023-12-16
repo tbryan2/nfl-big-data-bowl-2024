@@ -20,8 +20,6 @@ class PSODefense:
         c1: float = 2,
         c2: float = 0.2,
         num_iterations: int = 10_000,
-        min_velocity: float = -0.3,
-        max_velocity: float = 0.3,
         time_weighting_factor: int = 3,
         obstacle_avoidance_factor: float = 1.0
     ):
@@ -34,6 +32,9 @@ class PSODefense:
         self.def_abbr = def_abbr
         self.off_abbr = off_abbr
         self.ball_carrier_id = int(ball_carrier_id)
+
+        # define the ball carrier velocity
+        self.ball_carrier_velocity = self.play.loc[self.play['nflId'] == self.ball_carrier_id][['xy_velocity']].values
         
         # positional group
         if positional_group == 'safeties':
@@ -53,8 +54,6 @@ class PSODefense:
         self.xmax = 120  # Including endzones
         self.ymax = 53.3  # Standard width of a football field
         self.ymin = 0
-        self.min_velocity = min_velocity
-        self.max_velocity = max_velocity
 
         self.num_particles = len(self.agents)
         self.num_dimensions = 2
@@ -142,7 +141,7 @@ class PSODefense:
                                       self.c2 * random.random() * (self.global_best_position - self.positions[i]))
 
                 # Clip velocity to its bounds
-                self.velocities[i] = np.clip(self.velocities[i], self.min_velocity, self.max_velocity)
+                self.velocities[i] = np.clip(self.velocities[i], -self.ball_carrier_velocity.max(), self.ball_carrier_velocity.max())
 
                 # Update position for each particle
                 self.positions[i] += self.velocities[i]

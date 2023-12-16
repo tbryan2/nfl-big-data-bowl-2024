@@ -25,9 +25,7 @@ pso = PSODefense(
     w=1,
     c1=1,
     c2=2,
-    num_iterations=10_000,
-    min_velocity=-2,
-    max_velocity=2,
+    num_iterations=1_000,
     time_weighting_factor=3,
     obstacle_avoidance_factor=1.0
 )
