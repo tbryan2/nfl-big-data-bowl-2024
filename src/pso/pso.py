@@ -165,7 +165,7 @@ class PSODefense:
             self.personal_best_scores_history = np.append(self.personal_best_scores_history, [self.personal_best_scores.copy()], axis=0)
             self.global_best_score_history = np.append(self.global_best_score_history, [self.global_best_score])
             self.global_best_position_history = np.append(self.global_best_position_history, [self.global_best_position.copy()], axis=0)
-        
+            
         return self.global_best_position, self.global_best_score
 
     def animate_play(self):

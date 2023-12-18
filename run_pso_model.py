@@ -3,6 +3,7 @@ from src.pso.objective_functions import (
     minimize_distance_to_ball_carrier_with_obstacle_avoidance
 )
 from src.pso.data_preprocessing import get_preprocessed_tracking_data
+import numpy as np
 
 data = get_preprocessed_tracking_data(
     week_num=1, 
@@ -30,4 +31,7 @@ pso = PSODefense(
     obstacle_avoidance_factor=1.0
 )
 pso.optimize()
+# save the positions_history to a npy
+#np.save('positions_history.npy', pso.positions_history)
+
 pso.animate_play()
