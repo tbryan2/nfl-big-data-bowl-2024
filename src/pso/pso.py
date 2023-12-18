@@ -208,7 +208,7 @@ class PSODefense:
 
         # ... [rest of the animate_play method]
 
-        anim = FuncAnimation(fig, animate, init_func=init, frames=len(self.positions_history), interval=100, blit=True)
+        anim = FuncAnimation(fig, animate, init_func=init, frames=self.num_frames, interval=100, blit=True)
         plt.show()
         return anim
 
