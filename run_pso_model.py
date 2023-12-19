@@ -33,5 +33,5 @@ pso = PSODefense(
 pso.optimize()
 # save the positions_history to a npy
 #np.save('positions_history.npy', pso.positions_history)
-
+pso.smooth_paths()
 pso.animate_play()
