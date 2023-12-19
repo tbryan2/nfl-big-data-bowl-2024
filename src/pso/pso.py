@@ -109,6 +109,8 @@ class PSODefense:
         self.personal_best_scores_history = np.array([self.personal_best_scores.copy()])
         self.global_best_score_history = np.array([self.global_best_score])
         self.global_best_position_history = np.array([self.global_best_position.copy()])
+        self.smoothed_positions_history = None
+
 
         # hyper parameters
         self.w = w
@@ -165,52 +167,56 @@ class PSODefense:
             self.personal_best_scores_history = np.append(self.personal_best_scores_history, [self.personal_best_scores.copy()], axis=0)
             self.global_best_score_history = np.append(self.global_best_score_history, [self.global_best_score])
             self.global_best_position_history = np.append(self.global_best_position_history, [self.global_best_position.copy()], axis=0)
-            
+
         return self.global_best_position, self.global_best_score
+
+    def dynamic_alpha(self, distance, max_alpha=0.03, min_alpha=0.001, scale_factor=10):
+        # Adjust alpha based on distance to the target
+        alpha = max_alpha / (1 + distance / scale_factor)
+        # Clamp alpha within a range
+        return max(min_alpha, min(max_alpha, alpha))
+
+    def smooth_paths(self):
+        self.smoothed_positions_history = []
+        for i in range(self.num_particles):
+            smoothed_path = [self.positions_history[0, i, :]]
+            for frame in range(1, len(self.positions_history)):
+                current_position = self.positions_history[frame, i, :]
+                target_position = self.best_targets[min(frame, len(self.best_targets) - 1)]
+                distance = np.linalg.norm(current_position - target_position)
+                alpha = self.dynamic_alpha(distance)
+                new_smoothed_position = alpha * current_position + (1 - alpha) * smoothed_path[-1]
+                smoothed_path.append(new_smoothed_position)
+            self.smoothed_positions_history.append(np.array(smoothed_path))
+
 
     def animate_play(self):
         fig, ax = plt.subplots(figsize=(12, 7))
-
-        # Set the limits of the football field
         ax.set_xlim(0, self.xmax)
         ax.set_ylim(0, self.ymax)
 
-        # Lines for the agents and ball carrier
         lines = [ax.plot([], [], '-', label=f'Agent {i}')[0] for i in range(self.num_particles)]
         ball_carrier_line, = ax.plot([], [], '-', color='red', label='Ball Carrier')
-
-        # Setting up legend
         ax.legend()
 
         def init():
-            # Initialize empty lines
             for line in lines:
                 line.set_data([], [])
             ball_carrier_line.set_data([], [])
             return lines + [ball_carrier_line]
 
         def animate(frame):
-            # Ensure there is data to plot
-            if frame == 0:
-                return lines + [ball_carrier_line]
-
-            # Update the positions for each agent with smoothing
             for i, line in enumerate(lines):
-                if frame < len(self.positions_history):
-                    # Apply smoothing only if there are enough data points
-                    smoothed_positions = self.exponential_smoothing(self.positions_history[:frame+1, i], alpha=0.04)
-                    line.set_data(smoothed_positions[:, 0], smoothed_positions[:, 1])
+                if frame < len(self.smoothed_positions_history[i]):
+                    x_data, y_data = self.smoothed_positions_history[i][:frame+1, 0], self.smoothed_positions_history[i][:frame+1, 1]
+                    line.set_data(x_data, y_data)
 
-            # Update the position for the ball carrier
-            ball_carrier_line.set_data(self.target_positions[:frame+1, 0], self.target_positions[:frame+1, 1])
+            if frame < len(self.target_positions):
+                ball_carrier_line.set_data(self.target_positions[:frame + 1, 0], self.target_positions[:frame + 1, 1])
 
             return lines + [ball_carrier_line]
-
-        # ... [rest of the animate_play method]
 
         anim = FuncAnimation(fig, animate, init_func=init, frames=self.num_frames, interval=100, blit=True)
         plt.show()
         return anim
-
-
 
