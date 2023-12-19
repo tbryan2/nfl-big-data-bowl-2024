@@ -8,6 +8,48 @@ import random
 from src.pso.target_selection import select_common_target
 
 class PSODefense:
+    """
+        A class to represent Particle Swarm Obstacle avoidance algorithm on a play level using data from the 2024 NFL Big Data Bowl.
+
+        Attributes
+        ----------
+        play : pd.DataFrame
+            Raw DataFrame representing the play, containing positional data for players.
+        objective_function : Callable
+            The objective function used to evaluate particle positions in the optimization process.
+        def_abbr : str
+            Abbreviation for the defensive team.
+        off_abbr : str
+            Abbreviation for the offensive team.
+        ball_carrier_id : int
+            Unique identifier for the ball carrier player.
+        positional_group : str
+            Positional group for the defensive players ('safeties', 'linebackers', 'cornerbacks', 'secondary').
+        w : float, optional
+            Inertia weight in the Particle Swarm Optimization algorithm, default is 0.1.
+        c1 : float, optional
+            Cognitive parameter in the Particle Swarm Optimization algorithm, default is 2.
+        c2 : float, optional
+            Social parameter in the Particle Swarm Optimization algorithm, default is 0.2.
+        num_iterations : int, optional
+            Number of iterations for the optimization process, default is 10,000.
+        time_weighting_factor : int, optional
+            Weighting factor for time in the objective function, default is 3.
+        obstacle_avoidance_factor : float, optional
+            Factor influencing obstacle avoidance in the objective function, default is 1.0.
+
+        Methods
+        -------
+        optimize()
+            Executes the Particle Swarm Optimization algorithm to find optimal positions for defensive players.
+        
+        animate_play()
+            Animates the play, displaying the movement of defensive players and the ball carrier over frames.
+        
+        exponential_smoothing(series, alpha)
+            Applies exponential smoothing to a series.
+
+        """
     def __init__(
         self, 
         play: pd.DataFrame, 
@@ -45,6 +87,8 @@ class PSODefense:
             self.positional_group = ['CB']
         elif positional_group == 'secondary':
             self.positional_group = ['FS', 'SS', 'CB']
+        #else: 
+        #   add exception handling
 
         # agents
         self.agents = self.play.loc[self.play['position'].isin(self.positional_group)]['nflId'].unique()
@@ -133,6 +177,7 @@ class PSODefense:
         return smoothed_series
 
     def optimize(self):
+        """Executes the Particle Swarm Optimization algorithm to find optimal positions for defensive players."""
         for _ in range(self.num_iterations):
             for i in range(self.num_particles):
                 # Update velocity for each particle
@@ -169,6 +214,7 @@ class PSODefense:
         return self.global_best_position, self.global_best_score
 
     def animate_play(self):
+        """Animates the play, displaying the movement of defensive players and the ball carrier over frames."""
         fig, ax = plt.subplots(figsize=(12, 7))
 
         # Set the limits of the football field
