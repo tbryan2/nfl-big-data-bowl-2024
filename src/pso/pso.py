@@ -7,6 +7,10 @@ from matplotlib.animation import FuncAnimation
 import random
 from src.pso.target_selection import select_common_target
 from IPython.display import HTML
+from frechetdist import frdist
+from scipy.interpolate import interp1d
+import plotly.graph_objs as go
+
 
 class PSODefense:
     """
@@ -253,6 +257,29 @@ class PSODefense:
                 smoothed_path.append(new_smoothed_position)
             self.smoothed_positions_history.append(np.array(smoothed_path))
 
+    def calculate_frechet_distances(self):
+        """Calculates the Fréchet distance between actual and smooth paths for each agent."""
+        frechet_distances_data = []
+
+        for i in range(self.num_particles):
+            actual_path = self.actual_particle_positions[:, i, :]
+            smooth_path = self.smoothed_positions_history[i]
+
+            # Ensure that both paths have the same length for comparison
+            min_length = min(len(actual_path), len(smooth_path))
+            actual_path = actual_path[:min_length]
+            smooth_path = smooth_path[:min_length]
+
+            # Calculate the Fréchet distance
+            distance = frdist(actual_path, smooth_path)
+            frechet_distances_data.append({'nflId': self.agents[i], 'frechet_distance': distance})
+
+        # Create a DataFrame
+        frechet_distances_df = pd.DataFrame(frechet_distances_data)
+        frechet_distances_df.set_index('nflId', inplace=True)
+
+        return frechet_distances_df
+
     def animate_play(self):
         """Animates the play, displaying the movement of defensive players and the ball carrier over frames."""
         fig, ax = plt.subplots(figsize=(12, 7))
@@ -285,4 +312,64 @@ class PSODefense:
 
         # Convert the animation to HTML and display it in the notebook
         return HTML(anim.to_html5_video())
+
+    def visualize_paths_with_plotly(self, frechet_distances_df):
+        """Creates an interactive Plotly visualization of the player paths."""
+        fig = go.Figure()
+
+        # Find the agent with the lowest Fréchet distance
+        min_frechet_nfl_id = frechet_distances_df.idxmin()['frechet_distance']
+
+        # Define the color for the optimal paths
+        color_optimal = 'blue'  # Blue for optimal paths
+
+        # Add actual and optimal paths for each agent to the figure
+        for i, nfl_id in enumerate(self.agents):
+            actual_path = self.actual_particle_positions[:, i, :]
+            smooth_path = self.smoothed_positions_history[i]
+            frechet_distance = frechet_distances_df.loc[nfl_id, 'frechet_distance']
+
+            # Add actual path with hover text for Fréchet distance
+            fig.add_trace(go.Scatter(
+                x=actual_path[:, 0], y=actual_path[:, 1],
+                mode='lines+markers',
+                name=f'NFLID {nfl_id}' + (" Best" if nfl_id == min_frechet_nfl_id else ""),
+                line=dict(color='orange' if nfl_id == min_frechet_nfl_id else 'black'),
+                text=f"Frechet Distance: {frechet_distance:.2f}",
+                hoverinfo='text+name'
+            ))
+
+            # Add optimal (SWARM) path
+            fig.add_trace(go.Scatter(
+                x=smooth_path[:, 0], y=smooth_path[:, 1],
+                mode='lines',
+                name='SWARM Optimal',
+                line=dict(color=color_optimal, dash='dash'),
+                showlegend=i == 0  # Only show legend entry for SWARM once
+            ))
+
+        # Add ball carrier's path
+        ball_carrier_path = self.target_positions
+        fig.add_trace(go.Scatter(
+            x=ball_carrier_path[:, 0], y=ball_carrier_path[:, 1],
+            mode='lines',
+            name='Ball Carrier',
+            line=dict(color='red', width=2)
+        ))
+
+        # Update layout
+        fig.update_layout(
+            title='Player Paths',
+            xaxis_title='X Position',
+            yaxis_title='Y Position',
+            legend_title='Legend',
+            showlegend=True
+        )
+
+        # Show the figure
+        fig.show()
+
+
+
+
 

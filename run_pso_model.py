@@ -23,15 +23,19 @@ pso = PSODefense(
     off_abbr=off_abbr, 
     ball_carrier_id=ball_carrier_id,
     positional_group='secondary',
-    w=1,
-    c1=1,
-    c2=2,
-    num_iterations=1_000,
+    w=.729,
+    c1=1.49445,
+    c2=1.49445,
+    max_iterations=1_000,
     time_weighting_factor=3,
-    obstacle_avoidance_factor=1.0
+    obstacle_avoidance_factor=1.0,
+    stop_threshold=0.0001
+
 )
 pso.optimize()
 # save the positions_history to a npy
 #np.save('positions_history.npy', pso.positions_history)
 pso.smooth_paths()
-pso.animate_play()
+# pso.animate_play()
+frechet_distances_df = pso.calculate_frechet_distances()
+pso.visualize_paths_with_plotly(frechet_distances_df)
