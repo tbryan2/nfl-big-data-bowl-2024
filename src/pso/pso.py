@@ -6,6 +6,7 @@ import logging
 from matplotlib.animation import FuncAnimation
 import random
 from src.pso.target_selection import select_common_target
+from IPython.display import HTML
 
 class PSODefense:
     """
@@ -61,9 +62,10 @@ class PSODefense:
         w: float = 0.1,
         c1: float = 2,
         c2: float = 0.2,
-        num_iterations: int = 10_000,
         time_weighting_factor: int = 3,
-        obstacle_avoidance_factor: float = 1.0
+        obstacle_avoidance_factor: float = 1.0,
+        max_iterations: int = 10_000,
+        stop_threshold: float = 0.1
     ):
 
         # DataFrame of the play
@@ -98,6 +100,9 @@ class PSODefense:
         self.xmax = 120  # Including endzones
         self.ymax = 53.3  # Standard width of a football field
         self.ymin = 0
+
+        self.stop_threshold = stop_threshold
+        self.max_iterations = max_iterations
 
         self.num_particles = len(self.agents)
         self.num_dimensions = 2
@@ -160,7 +165,6 @@ class PSODefense:
         self.w = w
         self.c1 = c1
         self.c2 = c2
-        self.num_iterations = num_iterations
         
         # logging
         logging.basicConfig(
@@ -180,12 +184,14 @@ class PSODefense:
 
     def optimize(self):
         """Executes the Particle Swarm Optimization algorithm to find optimal positions for defensive players."""
-        for _ in range(self.num_iterations):
+        iteration = 0
+        while iteration < self.max_iterations:
+            any_within_threshold = False  # Changed from all_within_threshold to any_within_threshold
             for i in range(self.num_particles):
                 # Update velocity for each particle
                 self.velocities[i] = (self.w * self.velocities[i] +
-                                      self.c1 * random.random() * (self.personal_best_positions[i] - self.positions[i]) +
-                                      self.c2 * random.random() * (self.global_best_position - self.positions[i]))
+                                    self.c1 * random.random() * (self.personal_best_positions[i] - self.positions[i]) +
+                                    self.c2 * random.random() * (self.global_best_position - self.positions[i]))
 
                 # Clip velocity to its bounds
                 self.velocities[i] = np.clip(self.velocities[i], -self.ball_carrier_velocity.max(), self.ball_carrier_velocity.max())
@@ -205,6 +211,12 @@ class PSODefense:
                     self.global_best_score = cost
                     self.global_best_position = self.positions[i].copy()
 
+                # Check if the particle is within the stop threshold from the target
+                distance_to_target = np.linalg.norm(self.positions[i] - self.best_target)
+                if distance_to_target <= self.stop_threshold:
+                    any_within_threshold = True
+                    break  # Stop the inner loop if any agent is within threshold distance from the target
+
             # History update for each iteration
             self.positions_history = np.append(self.positions_history, [self.positions.copy()], axis=0)
             self.velocities_history = np.append(self.velocities_history, [self.velocities.copy()], axis=0)
@@ -213,8 +225,15 @@ class PSODefense:
             self.global_best_score_history = np.append(self.global_best_score_history, [self.global_best_score])
             self.global_best_position_history = np.append(self.global_best_position_history, [self.global_best_position.copy()], axis=0)
 
+            if any_within_threshold:
+                break  # Stop the outer loop if any agent is within threshold distance from the target
+
+            iteration += 1
+
         return self.global_best_position, self.global_best_score
 
+
+    
     def dynamic_alpha(self, distance, max_alpha=0.03, min_alpha=0.001, scale_factor=10):
         # Adjust alpha based on distance to the target
         alpha = max_alpha / (1 + distance / scale_factor)
@@ -233,7 +252,6 @@ class PSODefense:
                 new_smoothed_position = alpha * current_position + (1 - alpha) * smoothed_path[-1]
                 smoothed_path.append(new_smoothed_position)
             self.smoothed_positions_history.append(np.array(smoothed_path))
-
 
     def animate_play(self):
         """Animates the play, displaying the movement of defensive players and the ball carrier over frames."""
@@ -262,7 +280,9 @@ class PSODefense:
 
             return lines + [ball_carrier_line]
 
+                # Create the animation
         anim = FuncAnimation(fig, animate, init_func=init, frames=self.num_frames, interval=100, blit=True)
-        plt.show()
-        return anim
+
+        # Convert the animation to HTML and display it in the notebook
+        return HTML(anim.to_html5_video())
 

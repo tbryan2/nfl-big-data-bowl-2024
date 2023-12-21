@@ -53,7 +53,7 @@ def run_pso_pipeline(week_num, game_id):
             w=1,
             c1=1,
             c2=2,
-            num_iterations=1000,
+            num_iterations=1000, 
             min_velocity=-0.6,
             max_velocity=0.6,
             time_weighting_factor=100
