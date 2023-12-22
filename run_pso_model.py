@@ -4,6 +4,8 @@ from src.pso.objective_functions import (
 )
 from src.pso.data_preprocessing import get_preprocessed_tracking_data
 import numpy as np
+from frechetdist import frdist
+
 
 data = get_preprocessed_tracking_data(
     week_num=1, 
@@ -38,4 +40,5 @@ pso.optimize()
 pso.smooth_paths()
 # pso.animate_play()
 frechet_distances_df = pso.calculate_frechet_distances()
-pso.visualize_paths_with_plotly(frechet_distances_df)
+#pso.visualize_paths_with_plotly(frechet_distances_df)
+print(frechet_distances_df.head())

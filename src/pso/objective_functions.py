@@ -60,5 +60,4 @@ def minimize_distance_to_ball_carrier_with_obstacle_avoidance(
     weighted_target_importance = target_weights * exp_weighting
 
     reward = np.sum(weighted_target_importance)
-    print('Reward: ', reward, 'Penalty: ', penalty, 'Total: ', reward - penalty)
     return reward - penalty

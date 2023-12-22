@@ -11,7 +11,6 @@ from frechetdist import frdist
 from scipy.interpolate import interp1d
 import plotly.graph_objs as go
 
-
 class PSODefense:
     """
         A class to represent Particle Swarm Obstacle avoidance algorithm on a play level using data from the 2024 NFL Big Data Bowl.

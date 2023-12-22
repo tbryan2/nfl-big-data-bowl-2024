@@ -36,7 +36,11 @@ def get_preprocessed_tracking_data(
 
     # Create a column for when the ball arrived to the ball carrier
     # based on the frameId where event_type == 'pass_outcome_caught' || 'handoff'
-    tracking_data['ball_arrived'] = tracking_data.loc[(tracking_data['event'] == 'pass_outcome_caught') | (tracking_data['event'] == 'handoff')]['frameId'].iloc[0]
+    # If there is no pass_outcome_caught or handoff, return None
+    if tracking_data.loc[(tracking_data['event'] == 'pass_outcome_caught') | (tracking_data['event'] == 'handoff')].empty:
+        return None
+    else:
+        tracking_data['ball_arrived'] = tracking_data.loc[(tracking_data['event'] == 'pass_outcome_caught') | (tracking_data['event'] == 'handoff')]['frameId'].iloc[0]
     
     tracking_data['time'] = pd.to_datetime(tracking_data['time'])
     # shift, x, y, and time
