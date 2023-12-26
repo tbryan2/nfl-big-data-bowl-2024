@@ -1,8 +1,9 @@
 from src.pso.pso import PSODefense
 from src.pso.objective_functions import minimize_distance_to_ball_carrier_with_obstacle_avoidance
 from src.pso.data_preprocessing import get_preprocessed_tracking_data
-from config import TRACKING_DATA_URL
+from config import TRACKING_DATA_URL, PLAYS_URL, PLAYERS_URL
 import pandas as pd
+
 
 def run_pso_pipeline(week_num, game_id):
     '''
@@ -10,7 +11,7 @@ def run_pso_pipeline(week_num, game_id):
     calculate the Frechet distance between the best paths and the actual paths, and
     save the distances in a CSV with identifying information.
     '''
-    
+
     df = pd.read_csv(TRACKING_DATA_URL.format(week=week_num))
     df = df.loc[df['gameId'] == game_id]
 
@@ -30,21 +31,20 @@ def run_pso_pipeline(week_num, game_id):
             print(f"Skipping play ID {play_id}: No handoff or pass outcome caught.")
             continue
 
-
         if not data or data['df'].empty:
             print(f"Warning: No data for play ID {play_id}")
             continue
 
-        df = data['df']
+        play_df = data['df']
         ball_carrier_id = data['ball_carrier_id']
         off_abbr = data['off_abbr']
         def_abbr = data['def_abbr']
 
         pso = PSODefense(
-            play=df, 
-            objective_function=minimize_distance_to_ball_carrier_with_obstacle_avoidance, 
-            def_abbr=def_abbr, 
-            off_abbr=off_abbr, 
+            play=play_df,
+            objective_function=minimize_distance_to_ball_carrier_with_obstacle_avoidance,
+            def_abbr=def_abbr,
+            off_abbr=off_abbr,
             ball_carrier_id=ball_carrier_id,
             positional_group='secondary',
             w=.729,
@@ -55,7 +55,7 @@ def run_pso_pipeline(week_num, game_id):
             obstacle_avoidance_factor=1.0,
             stop_threshold=0.0001
         )
-        pso.optimize() 
+        pso.optimize()
         pso.smooth_paths()
         frechet_distances_df = pso.calculate_frechet_distances()
 
@@ -68,8 +68,21 @@ def run_pso_pipeline(week_num, game_id):
     if not all_frechet_distances:
         raise ValueError("No valid Frechet distances calculated for any play.")
 
-    return pd.concat(all_frechet_distances)
+    # Concatenate all Frechet distances data
+    concatenated_df = pd.concat(all_frechet_distances)
+
+    # Read the complete plays and players data
+    plays = pd.read_csv(PLAYS_URL)
+    players = pd.read_csv(PLAYERS_URL)
+
+    # Merge with player and play data
+    concatenated_df = concatenated_df.merge(players[['nflId', 'displayName', 'position']], on='nflId', how='left')
+    concatenated_df = concatenated_df.merge(plays[['gameId', 'playId', 'passResult', 'expectedPointsAdded']],
+                                            left_on=['game_id', 'play_id'], right_on=['gameId', 'playId'], how='left')
+
+    return concatenated_df
+
 
 # Example usage of the function
-# result = run_pso_pipeline(week_num, game_id)
-# result.to_csv('output_file.csv')  # Save the result to a CSV file
+result = run_pso_pipeline(1, 2022091102)
+result.to_csv('run_pso_pipeline_test.csv')  # Save the result to a CSV file

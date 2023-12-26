@@ -63,7 +63,12 @@ def get_preprocessed_tracking_data(
     tracking_data['off_abbr'] = off_abbr
     tracking_data['def_abbr'] = def_abbr
 
-    tracking_data = tracking_data.merge(players[['nflId', 'position']], on='nflId', how='left')
+    tracking_data = tracking_data.merge(players[['nflId', 'position', 'displayName']], on='nflId', how='left')
+
+    # Create play_data without setting it as an index
+    play_data = plays.loc[(plays['gameId'] == game_id) & (plays['playId'] == play_id), ['gameId', 'playId', 'passResult', 'expectedPointsAdded']]
+    # Now merge tracking_data with play_data
+    tracking_data = tracking_data.merge(play_data, on=['gameId', 'playId'], how='left')
 
     # Filter to after the ball arrived to the ball carrier
     tracking_data = tracking_data.loc[tracking_data['frameId'] >= tracking_data['ball_arrived']]
@@ -83,4 +88,3 @@ def get_preprocessed_tracking_data(
         'def_abbr': def_abbr,
         'df': tracking_data
     }
-    
