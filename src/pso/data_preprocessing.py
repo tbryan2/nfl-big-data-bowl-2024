@@ -66,7 +66,7 @@ def get_preprocessed_tracking_data(
     tracking_data = tracking_data.merge(players[['nflId', 'position', 'displayName']], on='nflId', how='left')
 
     # Create play_data without setting it as an index
-    play_data = plays.loc[(plays['gameId'] == game_id) & (plays['playId'] == play_id), ['gameId', 'playId', 'passResult', 'expectedPointsAdded']]
+    play_data = plays.loc[(plays['gameId'] == game_id) & (plays['playId'] == play_id), ['gameId', 'playId', 'passResult', 'expectedPointsAdded', 'defensiveTeam']]
     # Now merge tracking_data with play_data
     tracking_data = tracking_data.merge(play_data, on=['gameId', 'playId'], how='left')
 
