@@ -77,12 +77,12 @@ def run_pso_pipeline(week_num, game_id):
 
     # Merge with player and play data
     concatenated_df = concatenated_df.merge(players[['nflId', 'displayName', 'position']], on='nflId', how='left')
-    concatenated_df = concatenated_df.merge(plays[['gameId', 'playId', 'passResult', 'expectedPointsAdded']],
+    concatenated_df = concatenated_df.merge(plays[['gameId', 'playId', 'passResult', 'expectedPointsAdded', 'defensiveTeam']],
                                             left_on=['game_id', 'play_id'], right_on=['gameId', 'playId'], how='left')
 
     return concatenated_df
 
 
-# Example usage of the function
-result = run_pso_pipeline(1, 2022091102)
-result.to_csv('run_pso_pipeline_test.csv')  # Save the result to a CSV file
+# # Example usage of the function
+# result = run_pso_pipeline(1, 2022091102)
+# result.to_csv('run_pso_pipeline_test.csv')  # Save the result to a CSV file
