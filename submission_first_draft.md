@@ -69,7 +69,7 @@ diagram or further explanation needed.
 
 ## Analysis and Validation
 - **Play Analysis:** [Placeholder for analysis of specific plays or sets of plays, including visualizations and animations]
-- **Comparative Metrics:** POISON will be compared with metrics like STRAIN,or some other individual player metric to validate its effectiveness in a visualztion or table. 
+- **Comparative Metrics:** POISON will be compared with metrics like last years big data bowl winner STRAIN [citation needed],or some other individual player metric to validate its effectiveness in a visualztion or table. 
 
 ## Discussion and Applications
 POISON offers vast applications for the NFL as whole, individual teams, the media, and fans.
@@ -86,14 +86,14 @@ POISON offers vast applications for the NFL as whole, individual teams, the medi
 ## Future Considerations
 - **Covering Potential Receivers:** Exploring POISON's application to broader defensive scenarios, such as secondaries converging on a reciever in anticipation of an incoming pass.
 - **Hyperparameter Tuning:** Refining parameters to tailor to specific team strategies and in house analytics using straties like GridSearch.
-- **Incorporating Other Models:** Considering integration with models like last years Dig Data bowl Winner, STRAIN,  for enhanced analysis.(We could actually do this if we have time, Nick wan has a notebook we can use in our objective function or hyper parameter tuning)
+- **Incorporating Other Models:** Considering integration with models like STRAIN for enhanced analysis and perhaps better path optimization.(We could actually do this if we have time, Nick wan has a notebook we can use in our objective function or hyper parameter tuning)
 
 ## Limitations and Ongoing Development
 While POISON is promising, it has areas for growth:
 
-- **Hyperparameter Tuning:** Current parameters are based on intuitive assumptions, which could be further optimized as discussed earlier.
+- **Hyperparameter Tuning:** Current parameters are based on intuitive assumptions, which could be further optimized as discussed earlier. We are limited in terms of computation resources.  
 - **Max Speed Limitation:** A constraint that may not fully mirror real-life scenarios but is still effective. Given more data and time, we could fine tune this to constrain more specifically to individual player profiles but we also suspect this would do little to improve this as a tool. 
-- **Target Selection:** Focusing on refining how targets are selected and pursued by the defense. Ideally, we would like to incorporate ideas from this paper [citation neede] that utilizes particle swarm optimization on moving targets. or we would like to incorporate velocity in a more realistic manner. both are complex problems to solve, but are worth pursuing.  
+- **Target Selection:** Focusing on refining how targets are selected and pursued by the defense. Ideally, we would like to incorporate ideas from this paper [citation neede] that utilizes particle swarm optimization on moving targets. or we would like to incorporate velocity in a more realistic manner(??? not explaining this well) . both are complex problems to solve, but are worth pursuing.  
 
 ## Conclusion
 POISON, inspired by nature's efficiency and adapted for football, stands to transform NFL defensive tactics. Its ability to evaluate both individual players and units, especially in covering vast areas, makes it a versatile and powerful tool in strategic defense planning. This metric not only provides tactical insights for coaches but also offers engaging analytical content for fans and broadcasters.
