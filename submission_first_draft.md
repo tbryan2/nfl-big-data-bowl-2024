@@ -84,6 +84,7 @@ POISON offers vast applications for the NFL as whole, individual teams, the medi
 - **Player and Defense Rankings:** Showcasing how talented players and teams align with optimal paths.
 
 ## Future Considerations
+- **Generalizing to Other Groups:** It would be interesting to analyze different position units, entire teams, or relevant combinations of players. 
 - **Covering Potential Receivers:** Exploring POISON's application to broader defensive scenarios, such as secondaries converging on a reciever in anticipation of an incoming pass.
 - **Hyperparameter Tuning:** Refining parameters to tailor to specific team strategies and in house analytics using straties like GridSearch.
 - **Incorporating Other Models:** Considering integration with models like STRAIN for enhanced analysis and perhaps better path optimization.(We could actually do this if we have time, Nick wan has a notebook we can use in our objective function or hyper parameter tuning)
@@ -91,7 +92,7 @@ POISON offers vast applications for the NFL as whole, individual teams, the medi
 ## Limitations and Ongoing Development
 While POISON is promising, it has areas for growth:
 
-- **Hyperparameter Tuning:** Current parameters are based on intuitive assumptions, which could be further optimized as discussed earlier. We are limited in terms of computation resources.  
+- **Hyperparameter Tuning:** Again, Current parameters are based on intuitive assumptions, which could be further optimized as discussed earlier. We are limited in terms of computation resources.  
 - **Max Speed Limitation:** A constraint that may not fully mirror real-life scenarios but is still effective. Given more data and time, we could fine tune this to constrain more specifically to individual player profiles but we also suspect this would do little to improve this as a tool. 
 - **Target Selection:** Focusing on refining how targets are selected and pursued by the defense. Ideally, we would like to incorporate ideas from this paper [citation neede] that utilizes particle swarm optimization on moving targets. or we would like to incorporate velocity in a more realistic manner(??? not explaining this well) . both are complex problems to solve, but are worth pursuing.  
 
