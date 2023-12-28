@@ -1,6 +1,6 @@
 import pandas as pd
 import time
-from pso_model_pipeline import run_pso_pipeline
+from reuse.pso_model_pipeline import run_pso_pipeline
 from config import TRACKING_DATA_URL
 
 def process_weeks(start_week, end_week):

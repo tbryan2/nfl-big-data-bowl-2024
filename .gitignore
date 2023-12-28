@@ -160,5 +160,4 @@ cython_debug/
 #.idea/
 
 # Ignore all files in data directory
-data/*
 .Rproj.user
