@@ -7,20 +7,23 @@ In NFL defense, the strategic placement and movement of secondary units - corner
 Particle Swarm Optimization (PSO), inspired by natural swarms like birds and fish, optimizes complex problems through iterative solution improvement. This algorithm is particularly suited to simulate the social behaviors of animals, where each member of the swarm adjusts its position relative to others based on simple rules with the common goal of foraging for food or attacking prey.
 
 **Mathematical Representation of PSO:**
-- PSO's formula updates each particle's velocity and position, factoring in personal and collective experiences. The basic equation for PSO is:
 
-\[V_{ij}(t+1) = w \cdot V_{ij}(t) + c_1 \cdot r_1 \cdot (P_{ij}(t) - X_{ij}(t)) + c_2 \cdot r_2 \cdot (P_{gj}(t) - X_{ij}(t))\]
-\[X_{ij}(t+1) = X_{ij}(t) + V_{ij}(t+1)\]
+PSO's formula updates each particle's velocity and position, factoring in personal and collective experiences. The equation for PSO is:
 
-where:
-- \(X_{ij}(t)\) is the position of particle \(i\) along dimension \(j\) at time \(t\),
-- \(V_{ij}(t)\) is the velocity of particle \(i\) along dimension \(j\) at time \(t\),
-- \(w\) is the inertia weight,
-- \(c_1\) and \(c_2\) are acceleration constants,
-- \(r_1\) and \(r_2\) are random values between 0 and 1,
-- \(P_{ij}(t)\) is the personal best position of particle \(i\) along dimension \(j\) up to time \(t\),
-- \(P_{gj}(t)\) is the global best position of any particle along dimension \(j\) up to time \(t\).
+1. Velocity Update Equation:
+   $$ V_{ij}(t+1) = w V_{ij}(t) + c_1 r_1  (P_{ij}(t) - X_{ij}(t)) + c_2 r_2 (P_{gj}(t) - X_{ij}(t)) $$
 
+2. Position Update Equation:
+   $$ X_{ij}(t+1) = X_{ij}(t) + V_{ij}(t+1) $$
+
+Where:
+- $ X_{ij}(t) $ is the position of particle $ i $ along dimension $ j $ at time $ t $,
+- $ V_{ij}(t) $ is the velocity of particle $ i $ along dimension $ j $ at time $ t $,
+- $ w $ is the inertia weight,
+- $ c_1 $ and $ c_2 $ are acceleration constants,
+- $ r_1 $ and $ r_2 $ are random values between 0 and 1,
+- $ P_{ij}(t) $ is the personal best position of particle $ i $ along dimension $ j $ up to time $ t $,
+- $ P_{gj}(t) $ is the global best position of any particle along dimension $ j $ up to time $ t $.
 
 ## Adapting PSO to Football
 In football, we adapt the algorithm to analyze defensive secondary units consisting of two safeties and two cornerbacks. PSO determines efficient routes to decrease the distance to the ball carrier to 0 **using the same simple positioning and velocity rules** a flock of geese use to efficiently decrease the distance to the nearest food source. 
