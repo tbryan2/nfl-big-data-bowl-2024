@@ -1,7 +1,10 @@
-# NFL Big Data Bowl: "POISON: Charting the Future of NFL Defense with Swarm Intelligence"
+# "POISON: Charting the Future of NFL Defense with Swarm Intelligence"
+<-- 
+What defenses are the best at swarming the ball carrier?
+--> 
 
 ## Introduction(tldr needed)
-In NFL defense, the strategic placement and movement of secondary units - cornerbacks and safeties - are pivotal in the pursuit of tackling the ball careier in the open field. Leveraging advanced analytics, we introduce POISON (Path Optimization Index for Swarming Obstacle Navigation). Founded on particle swarm optimization principals [citation needed], POISON aims to revolutionize defensive strategy by modeling movements after intelligent swarm behaviors observed in nature.
+In NFL defense, the strategic placement and movement of defense are pivotal in the pursuit of tackling the ball carrier in the open field. Leveraging advanced analytics, we introduce POISON (Path Optimization Index for Swarming Obstacle Navigation). Founded on particle swarm optimization principals [citation needed], POISON aims to revolutionize defensive strategy by modeling movements after intelligent swarm behaviors observed in nature.
 
 ## Particle Swarm Optimization: The Foundation of POISON
 Particle Swarm Optimization (PSO), inspired by natural swarms like birds and fish, optimizes complex problems through iterative solution improvement. This algorithm is particularly suited to simulate the social behaviors of animals, where each member of the swarm adjusts its position relative to others based on simple rules with the common goal of foraging for food or attacking prey.
