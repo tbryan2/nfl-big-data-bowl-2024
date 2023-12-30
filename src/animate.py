@@ -8,13 +8,15 @@ import matplotlib.patches as patches
 import sys
 
 # Function to create a football field
-def create_football_field(fig, ax, line_color='black', field_color='white'):
+def create_football_field(fig, ax, line_color='white', field_color='darkgreen'):
     plt.xlim(0, 120)
     plt.ylim(0, 53.3)
-
+    field_color_dec = field_color
     for i in range(12):
         rect = patches.Rectangle((10*i, 0), 10, 53.3, linewidth=1, edgecolor=line_color, facecolor=field_color)
         ax.add_patch(rect)
+    ax.patches[0].set_facecolor('black')
+    ax.patches[-1].set_facecolor('black')
 
     ax.tick_params(
         axis='both', 
@@ -38,56 +40,6 @@ def create_football_field(fig, ax, line_color='black', field_color='white'):
     label_set = [" "] + label_set + [" " for j in range(10)]
     ax.set_xticklabels(label_set, fontsize=20, color=line_color)
     return fig, ax
-
-def animate_play(df):
-    
-    fig, ax = plt.subplots()
-    fig, ax = create_football_field(fig, ax)
-    ax.set_xlim(0, 120)
-    ax.set_ylim(0, 53.3)
-
-    ax.set_title(
-        label='Game ID: ' + str(df['gameId'].values[0]) + ' Play ID: ' + str(df['playId'].values[0]), 
-        fontsize=12, 
-    )
-    fig.suptitle(
-        t=df['playDescription'].values[0], 
-        fontsize=12, 
-    )
-
-    # # line of scrimmage
-    # ax.vlines(
-    #     100 - df['yardlineNumber'].values[0] if df['yardlineSide'].values[0] != df['possessionTeam'].values[0] else df['yardlineNumber'].values[0], 
-    #     0, 
-    #     53.3, 
-    #     colors='black', 
-    #     linestyles='dashed', 
-    #     linewidth=1.5
-    # )
-
-    player_colors = dict(df.drop_duplicates(subset=['displayName', 'team_color'], keep='first')[['displayName', 'team_color']].fillna({'team_color': 'brown'}).to_records(index=False))
-    # Initialize player markers
-    player_dots = {
-        displayName: ax.plot([], [], 'o', color=player_colors.get(displayName, 'brown'), label=displayName)[0] for displayName in df['displayName'].unique()
-    }
-
-    # Get team colors
-
-    def update(frame_id):
-        # Clear only the player markers, not the entire field
-        for dot in player_dots.values():
-            dot.set_data([], [])
-
-        frame_data = df[df['frameId'] == frame_id]
-        for displayName, dot in player_dots.items():
-            player_data = frame_data[frame_data['displayName'] == displayName]
-            if not player_data.empty:
-                dot.set_data(player_data['x'].iloc[0], player_data['y'].iloc[0])
-        
-        return list(player_dots.values())
-
-    ani = animation.FuncAnimation(fig, update, frames=df['frameId'].unique(), interval=100, blit=True, repeat=True)
-    return fig, ani
 
 class NFLPlayApp(tk.Tk):
     def __init__(self, df):
@@ -115,6 +67,11 @@ class NFLPlayApp(tk.Tk):
         control_frame = ttk.Frame(self)
         control_frame.pack()
 
+        # Checkbox for Secondary players
+        self.secondary_checkbox_var = tk.BooleanVar(value=False)
+        self.secondary_checkbox = ttk.Checkbutton(self, text="Visualize Secondary?", variable=self.secondary_checkbox_var)
+        self.secondary_checkbox.pack()
+
         # Playback control buttons packed in a row within the control frame
         self.play_button = ttk.Button(control_frame, text="Play", command=self.play_animation)
         self.play_button.pack(side=tk.LEFT)
@@ -129,6 +86,65 @@ class NFLPlayApp(tk.Tk):
         self.animation_running = False
         self.animation_speed = 1.0  # 1x speed
 
+    def animate_play_func(self, df, visualize_secondary=True):
+        
+        fig, ax = plt.subplots()
+        fig, ax = create_football_field(fig, ax)
+        ax.set_xlim(0, 120)
+        ax.set_ylim(0, 53.3)
+
+        ax.set_title(
+            label='Game ID: ' + str(df['gameId'].values[0]) + ' Play ID: ' + str(df['playId'].values[0]), 
+            fontsize=12, 
+        )
+        fig.suptitle(
+            t=df['playDescription'].values[0], 
+            fontsize=12, 
+        )
+
+        # # line of scrimmage
+        # ax.vlines(
+        #     100 - df['yardlineNumber'].values[0] if df['yardlineSide'].values[0] != df['possessionTeam'].values[0] else df['yardlineNumber'].values[0], 
+        #     0, 
+        #     53.3, 
+        #     colors='black', 
+        #     linestyles='dashed', 
+        #     linewidth=1.5
+        # )
+        # Initialize player and football markers
+        player_dots = {
+            displayName: ax.plot([], [], 'o', color=player_colors.get(displayName), alpha = .8, label=displayName)[0] 
+            if displayName != 'football' else
+            ax.plot([], [], '^', color='brown', alpha = 1, markeredgecolor='black', label=displayName)[0]  # Use '^' (triangle) for players without team_color
+            for displayName in df['displayName'].unique()
+        }
+
+        # Get team colors
+
+        def update(frame_id):
+            # Clear only the player markers, not the entire field
+            for dot in player_dots.values():
+                dot.set_data([], [])
+
+            frame_data = df[df['frameId'] == frame_id]
+            for displayName, dot in player_dots.items():
+                player_data = frame_data[frame_data['displayName'] == displayName]
+                
+                # Check if the player should be visualized based on the checkbox
+                visualize_player = (
+                    visualize_secondary or 
+                    player_data.empty or 
+                    player_data['position'].iloc[0] not in ['SS', 'CB', 'FS']
+                )
+
+                if visualize_player:
+                    dot.set_data(player_data['x'].iloc[0], player_data['y'].iloc[0])
+
+            return list(player_dots.values())
+
+        ani = animation.FuncAnimation(fig, update, frames=df['frameId'].unique(), interval=100, blit=True, repeat=True)
+        return fig, ani
+
     def update_play_desc_combobox(self, event):
         matchup = self.matchup_combobox.get()
         play_desc = self.df[self.df['matchup'] == matchup]['playDescription'].unique().tolist()
@@ -137,8 +153,10 @@ class NFLPlayApp(tk.Tk):
     def animate_play(self):
         matchup = self.matchup_combobox.get()
         play_desc = self.play_desc_combobox.get()
+        visualize_secondary = self.secondary_checkbox_var.get()
+
         filtered_df = self.df[(self.df['matchup'] == matchup) & (self.df['playDescription'] == play_desc)]
-        fig, ani = animate_play(filtered_df)
+        fig, ani = self.animate_play_func(filtered_df, visualize_secondary)
         if self.canvas:
             self.canvas.get_tk_widget().pack_forget()
         self.canvas = FigureCanvasTkAgg(fig, master=self)
@@ -165,6 +183,7 @@ class NFLPlayApp(tk.Tk):
 if __name__ == '__main__':
     df = pd.read_csv('https://bigdatabowl2023.nyc3.cdn.digitaloceanspaces.com/raw/tracking_data/tracking_week_1.csv')
     colors = pd.read_csv('https://bigdatabowl2023.nyc3.cdn.digitaloceanspaces.com/raw/colors.csv')
+    players = pd.read_csv('https://bigdatabowl2023.nyc3.cdn.digitaloceanspaces.com/raw/players.csv')
     play_desc = pd.read_csv('https://bigdatabowl2023.nyc3.cdn.digitaloceanspaces.com/raw/plays.csv')
     games = pd.read_csv('https://bigdatabowl2023.nyc3.cdn.digitaloceanspaces.com/raw/games.csv')
     games['matchup'] = games['visitorTeamAbbr'] + ' @ ' + games['homeTeamAbbr'] + ' week ' + games['week'].astype(str) + ' of the ' + games['season'].astype(str) + ' season'
@@ -174,6 +193,8 @@ if __name__ == '__main__':
     df = df.merge(colors, on='club', how='left')
     df = df.merge(play_desc, on=['gameId', 'playId'], how='left')
     df = df.merge(games, on=['gameId'], how='left')
+    df = df.merge(players[['nflId','position']], on=['nflId'], how='left')
     app = NFLPlayApp(df)
     app.protocol("WM_DELETE_WINDOW", app.on_close)
+    player_colors = dict(df.drop_duplicates(subset=['displayName', 'team_color'], keep='first')[['displayName', 'team_color']].fillna({'team_color': 'brown'}).to_records(index=False))
     app.mainloop()
