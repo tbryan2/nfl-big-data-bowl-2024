@@ -105,7 +105,7 @@ class PSODefense:
         self.ymin = 0
 
         self.stop_threshold = stop_threshold
-        self.max_iterations = max_iterations
+        self.max_iterations = self.num_frames
 
         self.num_particles = len(self.agents)
         self.num_dimensions = 2
