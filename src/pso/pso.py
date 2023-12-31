@@ -305,6 +305,29 @@ class PSODefense:
 
         return frechet_distances_df, paths_df
 
+    def calculate_frechet_distances_only(self):
+        """Calculates the Fréchet distance between actual and smooth paths for each agent."""
+        frechet_distances_data = []
+
+        for i in range(self.num_particles):
+            nfl_id = self.agents[i]
+            actual_path = self.actual_particle_positions[:, i, :]
+            smooth_path = self.smoothed_positions_history[i]
+
+            if len(smooth_path) == len(actual_path) + 1:
+                smooth_path = smooth_path[:-1]
+
+            distance = frdist(actual_path, smooth_path)
+            frechet_distances_data.append({
+                'nflId': nfl_id,
+                'frechet_distance': distance
+            })
+
+        # Create DataFrame
+        frechet_distances_df = pd.DataFrame(frechet_distances_data)
+
+        return frechet_distances_df
+
     def animate_play(self):
         """Animates the play, displaying the movement of defensive players and the ball carrier over frames."""
         fig, ax = plt.subplots(figsize=(12, 7))

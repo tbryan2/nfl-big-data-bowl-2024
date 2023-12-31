@@ -1,7 +1,9 @@
+import sys
+sys.path.insert(0, '/absolute/path/to/nfl-big-data-bowl-2024')
 from src.pso.pso import PSODefense
 from src.pso.objective_functions import minimize_distance_to_ball_carrier_with_obstacle_avoidance
 from src.pso.data_preprocessing import get_preprocessed_tracking_data
-from config import TRACKING_DATA_URL, PLAYS_URL, PLAYERS_URL
+from src.pso.config import TRACKING_DATA_URL, PLAYS_URL, PLAYERS_URL
 import pandas as pd
 
 
@@ -28,7 +30,7 @@ def run_pso_pipeline(week_num, game_id):
         data = get_preprocessed_tracking_data(week_num, game_id, play_id)
 
         if data is None:  # Skip the play if no handoff or pass caught
-            print(f"Skipping play ID {play_id}: No handoff or pass outcome caught.")
+            print(f"Skipping play ID {play_id}: No pass outcome caught.")
             continue
 
         if not data or data['df'].empty:
@@ -57,7 +59,7 @@ def run_pso_pipeline(week_num, game_id):
         )
         pso.optimize()
         pso.smooth_paths()
-        frechet_distances_df = pso.calculate_frechet_distances()
+        frechet_distances_df = pso.calculate_frechet_distances_only()
 
         if not frechet_distances_df.empty:
             frechet_distances_df['play_id'] = play_id
