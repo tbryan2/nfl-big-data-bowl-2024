@@ -259,25 +259,51 @@ class PSODefense:
     def calculate_frechet_distances(self):
         """Calculates the Fréchet distance between actual and smooth paths for each agent."""
         frechet_distances_data = []
+        paths_data = []
 
         for i in range(self.num_particles):
+            nfl_id = self.agents[i]
             actual_path = self.actual_particle_positions[:, i, :]
             smooth_path = self.smoothed_positions_history[i]
 
-            # Ensure that both paths have the same length for comparison
-            min_length = min(len(actual_path), len(smooth_path))
-            actual_path = actual_path[:min_length]
-            smooth_path = smooth_path[:min_length]
+            # Check if the smooth_path is longer by one element
+            if len(smooth_path) == len(actual_path) + 1:
+                # Trim the last element from the smooth_path
+                smooth_path = smooth_path[:-1]
 
             # Calculate the Fréchet distance
             distance = frdist(actual_path, smooth_path)
-            frechet_distances_data.append({'nflId': self.agents[i], 'frechet_distance': distance})
 
-        # Create a DataFrame
+            for frame in range(len(actual_path)):
+                # Assuming 'gameId' and 'playId' are columns in self.play DataFrame
+                # and that 'frameId' is indexed starting from 1
+                frame_data = self.play[(self.play['frameId'] == frame + 1) & (self.play['nflId'] == nfl_id)]
+                if not frame_data.empty:
+                    game_id = frame_data['gameId'].iloc[0]
+                    play_id = frame_data['playId'].iloc[0]
+
+                    paths_data.append({
+                        'nflId': nfl_id,
+                        'gameId': game_id,
+                        'playId': play_id,
+                        'frameId': frame + 1,
+                        'actual_x': actual_path[frame, 0],
+                        'actual_y': actual_path[frame, 1],
+                        'smooth_x': smooth_path[frame, 0],
+                        'smooth_y': smooth_path[frame, 1],
+                    })
+
+            # Append distance once per nflId
+            frechet_distances_data.append({
+                'nflId': nfl_id,
+                'frechet_distance': distance
+            })
+
+        # Create DataFrames
         frechet_distances_df = pd.DataFrame(frechet_distances_data)
-        frechet_distances_df.set_index('nflId', inplace=True)
+        paths_df = pd.DataFrame(paths_data)
 
-        return frechet_distances_df
+        return frechet_distances_df, paths_df
 
     def animate_play(self):
         """Animates the play, displaying the movement of defensive players and the ball carrier over frames."""
