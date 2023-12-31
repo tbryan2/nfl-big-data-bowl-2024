@@ -1,3 +1,4 @@
+
 import tkinter as tk
 from tkinter import ttk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
@@ -7,39 +8,41 @@ from matplotlib import pyplot as plt
 import matplotlib.patches as patches
 import sys
 
+
 # Function to create a football field
 def create_football_field(fig, ax, line_color='white', field_color='darkgreen'):
     plt.xlim(0, 120)
     plt.ylim(0, 53.3)
     field_color_dec = field_color
     for i in range(12):
-        rect = patches.Rectangle((10*i, 0), 10, 53.3, linewidth=1, edgecolor=line_color, facecolor=field_color)
+        rect = patches.Rectangle((10 * i, 0), 10, 53.3, linewidth=1, edgecolor=line_color, facecolor=field_color)
         ax.add_patch(rect)
     ax.patches[0].set_facecolor('black')
     ax.patches[-1].set_facecolor('black')
 
     ax.tick_params(
-        axis='both', 
-        which='both', 
-        direction='in', 
-        pad=-40, 
-        length=5, 
-        bottom=True, 
-        top=True, 
-        labeltop=True, 
-        labelbottom=True, 
-        left=False, right=False, 
-        labelleft=False, 
-        labelright=False, 
+        axis='both',
+        which='both',
+        direction='in',
+        pad=-40,
+        length=5,
+        bottom=True,
+        top=True,
+        labeltop=True,
+        labelbottom=True,
+        left=False, right=False,
+        labelleft=False,
+        labelright=False,
         color=line_color
     )
     ax.set_xticks([i for i in range(10, 111)])
     label_set = []
     for i in range(1, 10):
-        label_set += [" " for j in range(9)] + [str(i*10) if i <= 5 else str((10-i)*10)]
+        label_set += [" " for j in range(9)] + [str(i * 10) if i <= 5 else str((10 - i) * 10)]
     label_set = [" "] + label_set + [" " for j in range(10)]
     ax.set_xticklabels(label_set, fontsize=20, color=line_color)
     return fig, ax
+
 
 class NFLPlayApp(tk.Tk):
     def __init__(self, df):
@@ -69,7 +72,8 @@ class NFLPlayApp(tk.Tk):
 
         # Checkbox for Secondary players
         self.secondary_checkbox_var = tk.BooleanVar(value=False)
-        self.secondary_checkbox = ttk.Checkbutton(self, text="Visualize Secondary?", variable=self.secondary_checkbox_var)
+        self.secondary_checkbox = ttk.Checkbutton(self, text="Visualize Secondary?",
+                                                  variable=self.secondary_checkbox_var)
         self.secondary_checkbox.pack()
 
         # Playback control buttons packed in a row within the control frame
@@ -87,35 +91,36 @@ class NFLPlayApp(tk.Tk):
         self.animation_speed = 1.0  # 1x speed
 
     def animate_play_func(self, df, visualize_secondary=True):
-        
+
         fig, ax = plt.subplots()
         fig, ax = create_football_field(fig, ax)
         ax.set_xlim(0, 120)
         ax.set_ylim(0, 53.3)
 
         ax.set_title(
-            label='Game ID: ' + str(df['gameId'].values[0]) + ' Play ID: ' + str(df['playId'].values[0]), 
-            fontsize=12, 
+            label='Game ID: ' + str(df['gameId'].values[0]) + ' Play ID: ' + str(df['playId'].values[0]),
+            fontsize=12,
         )
         fig.suptitle(
-            t=df['playDescription'].values[0], 
-            fontsize=12, 
+            t=df['playDescription'].values[0],
+            fontsize=12,
         )
 
         # # line of scrimmage
         # ax.vlines(
-        #     100 - df['yardlineNumber'].values[0] if df['yardlineSide'].values[0] != df['possessionTeam'].values[0] else df['yardlineNumber'].values[0], 
-        #     0, 
-        #     53.3, 
-        #     colors='black', 
-        #     linestyles='dashed', 
+        #     100 - df['yardlineNumber'].values[0] if df['yardlineSide'].values[0] != df['possessionTeam'].values[0] else df['yardlineNumber'].values[0],
+        #     0,
+        #     53.3,
+        #     colors='black',
+        #     linestyles='dashed',
         #     linewidth=1.5
         # )
         # Initialize player and football markers
         player_dots = {
-            displayName: ax.plot([], [], 'o', color=player_colors.get(displayName), alpha = .8, label=displayName)[0] 
+            displayName: ax.plot([], [], 'o', color=player_colors.get(displayName), alpha=.8, label=displayName)[0]
             if displayName != 'football' else
-            ax.plot([], [], '^', color='brown', alpha = 1, markeredgecolor='black', label=displayName)[0]  # Use '^' (triangle) for players without team_color
+            ax.plot([], [], '^', color='brown', alpha=1, markeredgecolor='black', label=displayName)[0]
+            # Use '^' (triangle) for players without team_color
             for displayName in df['displayName'].unique()
         }
 
@@ -129,12 +134,12 @@ class NFLPlayApp(tk.Tk):
             frame_data = df[df['frameId'] == frame_id]
             for displayName, dot in player_dots.items():
                 player_data = frame_data[frame_data['displayName'] == displayName]
-                
+
                 # Check if the player should be visualized based on the checkbox
                 visualize_player = (
-                    visualize_secondary or 
-                    player_data.empty or 
-                    player_data['position'].iloc[0] not in ['SS', 'CB', 'FS']
+                        visualize_secondary or
+                        player_data.empty or
+                        player_data['position'].iloc[0] not in ['SS', 'CB', 'FS']
                 )
 
                 if visualize_player:
@@ -180,23 +185,39 @@ class NFLPlayApp(tk.Tk):
         """ Close the application. """
         sys.exit(0)
 
+
 if __name__ == '__main__':
     df = pd.read_csv('https://bigdatabowl2023.nyc3.cdn.digitaloceanspaces.com/raw/tracking_data/tracking_week_1.csv')
     colors = pd.read_csv('https://bigdatabowl2023.nyc3.cdn.digitaloceanspaces.com/raw/colors.csv')
     players = pd.read_csv('https://bigdatabowl2023.nyc3.cdn.digitaloceanspaces.com/raw/players.csv')
     play_desc = pd.read_csv('https://bigdatabowl2023.nyc3.cdn.digitaloceanspaces.com/raw/plays.csv')
     games = pd.read_csv('https://bigdatabowl2023.nyc3.cdn.digitaloceanspaces.com/raw/games.csv')
-    paths= pd.read_csv('/Users/nick/nfl-big-data-bowl-2024/data/specific_plays_paths.csv')
-    games['matchup'] = games['visitorTeamAbbr'] + ' @ ' + games['homeTeamAbbr'] + ' week ' + games['week'].astype(str) + ' of the ' + games['season'].astype(str) + ' season'
+    paths = pd.read_csv('/Users/nick/nfl-big-data-bowl-2024/data/specific_plays_paths.csv')
+    games['matchup'] = games['visitorTeamAbbr'] + ' @ ' + games['homeTeamAbbr'] + ' week ' + games['week'].astype(
+        str) + ' of the ' + games['season'].astype(str) + ' season'
     colors = colors.rename({
         'team_abbr': 'club'
     }, axis=1)
     df = df.merge(colors, on='club', how='left')
     df = df.merge(play_desc, on=['gameId', 'playId'], how='left')
     df = df.merge(games, on=['gameId'], how='left')
-    df = df.merge(players[['nflId','position']], on=['nflId'], how='left')
-    df = paths.merge(df)
+    df = df.merge(players[['nflId', 'position']], on=['nflId'], how='left')
+    # Ensure data types are consistent
+    paths['gameId'] = paths['gameId'].astype(int)
+    paths['playId'] = paths['playId'].astype(int)
+    paths['nflId'] = paths['nflId'].astype(int)  # Convert to int if it doesn't have fractional values
+    print(df.shape)
+    # Merge paths DataFrame with the main DataFrame
+    df = df.merge(paths, on=['gameId', 'playId', 'nflId', 'frameId'], how='left')
+
+    # Filter out plays that are not in the paths DataFrame
+    plays_with_paths = paths['playId'].unique()
+    df = df[df['playId'].isin(plays_with_paths)]
+
+    print(df.shape)
     app = NFLPlayApp(df)
     app.protocol("WM_DELETE_WINDOW", app.on_close)
-    player_colors = dict(df.drop_duplicates(subset=['displayName', 'team_color'], keep='first')[['displayName', 'team_color']].fillna({'team_color': 'brown'}).to_records(index=False))
+    player_colors = dict(
+        df.drop_duplicates(subset=['displayName', 'team_color'], keep='first')[['displayName', 'team_color']].fillna(
+            {'team_color': 'brown'}).to_records(index=False))
     app.mainloop()
