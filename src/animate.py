@@ -186,6 +186,7 @@ if __name__ == '__main__':
     players = pd.read_csv('https://bigdatabowl2023.nyc3.cdn.digitaloceanspaces.com/raw/players.csv')
     play_desc = pd.read_csv('https://bigdatabowl2023.nyc3.cdn.digitaloceanspaces.com/raw/plays.csv')
     games = pd.read_csv('https://bigdatabowl2023.nyc3.cdn.digitaloceanspaces.com/raw/games.csv')
+    paths= pd.read_csv('/Users/nick/nfl-big-data-bowl-2024/data/specific_plays_paths.csv')
     games['matchup'] = games['visitorTeamAbbr'] + ' @ ' + games['homeTeamAbbr'] + ' week ' + games['week'].astype(str) + ' of the ' + games['season'].astype(str) + ' season'
     colors = colors.rename({
         'team_abbr': 'club'
@@ -194,6 +195,7 @@ if __name__ == '__main__':
     df = df.merge(play_desc, on=['gameId', 'playId'], how='left')
     df = df.merge(games, on=['gameId'], how='left')
     df = df.merge(players[['nflId','position']], on=['nflId'], how='left')
+    df = paths.merge(df)
     app = NFLPlayApp(df)
     app.protocol("WM_DELETE_WINDOW", app.on_close)
     player_colors = dict(df.drop_duplicates(subset=['displayName', 'team_color'], keep='first')[['displayName', 'team_color']].fillna({'team_color': 'brown'}).to_records(index=False))
