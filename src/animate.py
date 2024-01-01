@@ -71,10 +71,15 @@ class NFLPlayApp(tk.Tk):
         control_frame.pack()
 
         # Checkbox for Secondary players
-        self.secondary_checkbox_var = tk.BooleanVar(value=False)
+        self.secondary_checkbox_var = tk.BooleanVar(value=True)
         self.secondary_checkbox = ttk.Checkbutton(self, text="Visualize Secondary?",
                                                   variable=self.secondary_checkbox_var)
         self.secondary_checkbox.pack()
+
+        # Toggle box for Agent Path
+        self.agent_checkbox_var = tk.BooleanVar(value=False)
+        self.agent_checkbox = ttk.Checkbutton(self, text="Agent Path?", variable=self.agent_checkbox_var)
+        self.agent_checkbox.pack()
 
         # Playback control buttons packed in a row within the control frame
         self.play_button = ttk.Button(control_frame, text="Play", command=self.play_animation)
@@ -117,38 +122,51 @@ class NFLPlayApp(tk.Tk):
         # )
         # Initialize player and football markers
         player_dots = {
-            displayName: ax.plot([], [], 'o', color=player_colors.get(displayName), alpha=.8, label=displayName)[0]
+            displayName: 
+            ax.plot([], [], 'o', color=player_colors.get(displayName), alpha=.8, label=displayName)[0]
             if displayName != 'football' else
             ax.plot([], [], '^', color='brown', alpha=1, markeredgecolor='black', label=displayName)[0]
             # Use '^' (triangle) for players without team_color
             for displayName in df['displayName'].unique()
         }
 
-        # Get team colors
+        if self.agent_enabled:
+            agent_df = df.dropna(subset=['smooth_x'])
+            for displayName in agent_df['displayName'].unique():
+                player_dots[f'{displayName}_agent'] = \
+                ax.plot([], [], 's', color=player_colors.get(displayName), alpha=1, markeredgecolor='black', label=displayName)[0]
+                
 
         def update(frame_id):
-            # Clear only the player markers, not the entire field
             for dot in player_dots.values():
                 dot.set_data([], [])
 
             frame_data = df[df['frameId'] == frame_id]
             for displayName, dot in player_dots.items():
-                player_data = frame_data[frame_data['displayName'] == displayName]
+                is_agent = "agent" in displayName
+                
+                if is_agent:
+                    player_data = frame_data[frame_data['displayName'] == displayName.replace('_agent','')]
+                else:
+                    player_data = frame_data[frame_data['displayName'] == displayName]
 
-                # Check if the player should be visualized based on the checkbox
-                visualize_player = (
-                        visualize_secondary or
-                        player_data.empty or
-                        player_data['position'].iloc[0] not in ['SS', 'CB', 'FS']
-                )
-
-                if visualize_player:
+                player_secondary = player_data['position'].iloc[0] in ['SS', 'CB', 'FS']
+ 
+                if self.agent_enabled and is_agent:
+                    dot.set_data(player_data['smooth_x'].iloc[0], player_data['smooth_y'].iloc[0])
+                elif player_secondary and not is_agent:
+                    if visualize_secondary:
+                        dot.set_data(player_data['x'].iloc[0], player_data['y'].iloc[0])
+                    else:
+                        continue
+                else:
                     dot.set_data(player_data['x'].iloc[0], player_data['y'].iloc[0])
 
             return list(player_dots.values())
 
         ani = animation.FuncAnimation(fig, update, frames=df['frameId'].unique(), interval=100, blit=True, repeat=True)
         return fig, ani
+
 
     def update_play_desc_combobox(self, event):
         matchup = self.matchup_combobox.get()
@@ -159,6 +177,7 @@ class NFLPlayApp(tk.Tk):
         matchup = self.matchup_combobox.get()
         play_desc = self.play_desc_combobox.get()
         visualize_secondary = self.secondary_checkbox_var.get()
+        self.agent_enabled = self.agent_checkbox_var.get()
 
         filtered_df = self.df[(self.df['matchup'] == matchup) & (self.df['playDescription'] == play_desc)]
         fig, ani = self.animate_play_func(filtered_df, visualize_secondary)
@@ -192,7 +211,7 @@ if __name__ == '__main__':
     players = pd.read_csv('https://bigdatabowl2023.nyc3.cdn.digitaloceanspaces.com/raw/players.csv')
     play_desc = pd.read_csv('https://bigdatabowl2023.nyc3.cdn.digitaloceanspaces.com/raw/plays.csv')
     games = pd.read_csv('https://bigdatabowl2023.nyc3.cdn.digitaloceanspaces.com/raw/games.csv')
-    paths = pd.read_csv('/Users/nick/nfl-big-data-bowl-2024/data/specific_plays_paths.csv')
+    paths = pd.read_csv('/Users/benwolbransky/nfl-big-data-bowl-2024/data/specific_plays_paths.csv')
     games['matchup'] = games['visitorTeamAbbr'] + ' @ ' + games['homeTeamAbbr'] + ' week ' + games['week'].astype(
         str) + ' of the ' + games['season'].astype(str) + ' season'
     colors = colors.rename({
