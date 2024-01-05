@@ -1,4 +1,4 @@
-
+from PIL import Image, ImageTk
 import tkinter as tk
 from tkinter import ttk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
@@ -78,8 +78,18 @@ class NFLPlayApp(tk.Tk):
 
         # Toggle box for Agent Path
         self.agent_checkbox_var = tk.BooleanVar(value=False)
-        self.agent_checkbox = ttk.Checkbutton(self, text="Agent Path?", variable=self.agent_checkbox_var)
+        self.agent_checkbox = ttk.Checkbutton(self, text="Visualize Agent?", variable=self.agent_checkbox_var)
         self.agent_checkbox.pack()
+
+        # Toggle box for Entire Agent Path
+        self.entire_agent_path_var = tk.BooleanVar(value=False)
+        self.entire_agent_path_checkbox = ttk.Checkbutton(self, text="Visualize Agent Path?", variable=self.entire_agent_path_var)
+        self.entire_agent_path_checkbox.pack()
+
+        # Toggle box for Entire Agent Path
+        self.save_animation = tk.BooleanVar(value=False)
+        self.save_animation_checkbox = ttk.Checkbutton(self, text="Save Animation?", variable=self.save_animation)
+        self.save_animation_checkbox.pack()
 
         # Playback control buttons packed in a row within the control frame
         self.play_button = ttk.Button(control_frame, text="Play", command=self.play_animation)
@@ -94,7 +104,6 @@ class NFLPlayApp(tk.Tk):
         self.animation = None
         self.animation_running = False
         self.animation_speed = 1.0  # 1x speed
-
     def animate_play_func(self, df, visualize_secondary=True):
 
         fig, ax = plt.subplots()
@@ -110,6 +119,12 @@ class NFLPlayApp(tk.Tk):
             t=df['playDescription'].values[0],
             fontsize=12,
         )
+
+        if self.entire_agent_path_var.get():
+            agent_df = df.dropna(subset = 'smooth_x')
+            for agent in agent_df['displayName'].unique():
+                plot_df = agent_df[agent_df['displayName'] == agent].groupby(['nflId','gameId','playId','frameId'])[['smooth_x','smooth_y']].mean()
+                ax.plot(plot_df['smooth_x'], plot_df['smooth_y'], label=agent,  linestyle='dotted', color='gray', alpha=0.8)
 
         # # line of scrimmage
         # ax.vlines(
@@ -165,8 +180,11 @@ class NFLPlayApp(tk.Tk):
             return list(player_dots.values())
 
         ani = animation.FuncAnimation(fig, update, frames=df['frameId'].unique(), interval=100, blit=True, repeat=True)
-        return fig, ani
+        if self.save_animation.get():
+            ani.save('animation.gif')
 
+        # Display a message or perform any other necessary actions after saving
+        return fig, ani
 
     def update_play_desc_combobox(self, event):
         matchup = self.matchup_combobox.get()
@@ -230,8 +248,8 @@ if __name__ == '__main__':
     df = df.merge(paths, on=['gameId', 'playId', 'nflId', 'frameId'], how='left')
 
     # Filter out plays that are not in the paths DataFrame
-    plays_with_paths = paths['playId'].unique()
-    df = df[df['playId'].isin(plays_with_paths)]
+    plays_with_paths = paths[['gameId', 'playId']].drop_duplicates()
+    df = pd.merge(df, plays_with_paths, on=['gameId', 'playId'], how='inner')
 
     print(df.shape)
     app = NFLPlayApp(df)
