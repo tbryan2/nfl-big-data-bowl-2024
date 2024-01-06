@@ -127,14 +127,11 @@ class PSODefense:
         ball_carrier_frames = self.play.loc[self.play['nflId'] == self.ball_carrier_id].groupby('frameId')
         self.target_positions = np.array([frame.loc[frame['nflId'] == self.ball_carrier_id][['x', 'y']].values[0] for _, frame in ball_carrier_frames])
 
-        minimium_ball_carrier_velocity_x = self.play.loc[self.play['nflId'] == self.ball_carrier_id]['x_velocity'].max()
-        minimium_ball_carrier_velocity_y = self.play.loc[self.play['nflId'] == self.ball_carrier_id]['y_velocity'].max()
-
-        # calculate the target location
+        # calculate the target location, set the min velocity to the absolute value of the average of the ball carrier velocity
         self.best_target, self.best_target_idx = select_common_target(self.actual_particle_positions[0], 
                                                                       self.target_positions, 
                                                                       w_theta=1,
-                                                                      min_velocity=[1,1])
+                                                                      min_velocity=[abs(self.ball_carrier_velocity.max()), abs(self.ball_carrier_velocity.max())])
         
         # mask for the ball carrier positions
         self.best_targets = np.full((self.num_frames, 2), np.nan)
