@@ -355,7 +355,7 @@ class PSODefense:
 
             return lines + [ball_carrier_line]
 
-                # Create the animation
+        # Create the animation
         anim = FuncAnimation(fig, animate, init_func=init, frames=self.num_frames, interval=100, blit=True)
 
         # Convert the animation to HTML and display it in the notebook

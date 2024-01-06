@@ -21,7 +21,6 @@ def select_common_target(particle_positions,
             frame_num = index + 1
 
             if x_distance > min_velocity[0] * frame_num or y_distance > min_velocity[1] * frame_num:
-                print('Target location infeasible: ', target)
                 total_score=np.inf + 1
                 break
             target_vector = target - particle_position

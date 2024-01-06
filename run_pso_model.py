@@ -35,10 +35,5 @@ pso = PSODefense(
 
 )
 pso.optimize()
-# save the positions_history to a npy
-#np.save('positions_history.npy', pso.positions_history)
 pso.smooth_paths()
-# pso.animate_play()
-frechet_distances_df = pso.calculate_frechet_distances()
-#pso.visualize_paths_with_plotly(frechet_distances_df)
-print(frechet_distances_df.head())
+pso.animate_play()
