@@ -7,6 +7,7 @@ import matplotlib.animation as animation
 from matplotlib import pyplot as plt
 import matplotlib.patches as patches
 import sys
+import numpy as np
 
 
 # Function to create a football field
@@ -14,17 +15,40 @@ def create_football_field(fig, ax, line_color='white', field_color='darkgreen'):
     plt.xlim(0, 120)
     plt.ylim(0, 53.3)
     field_color_dec = field_color
-    for i in range(12):
-        rect = patches.Rectangle((10 * i, 0), 10, 53.3, linewidth=1, edgecolor=line_color, facecolor=field_color)
+
+    # Draw hash lines
+    x_values = np.arange(11, 110, 1)
+    ymin_value = 20.2 
+    ymax_value = 20.8 
+    ax.vlines(x=x_values, ymin=ymin_value, ymax=ymax_value, color=line_color, linewidth=.5)
+
+    x_values = np.arange(11, 110, 1)
+    ymin_value = 33.2 
+    ymax_value = 32.6 
+    ax.vlines(x=x_values, ymin=ymin_value, ymax=ymax_value, color=line_color,linewidth=.5)
+
+    for i in range(24):
+        rect = patches.Rectangle((5 * i, 0), 10, 53.3, linewidth=1, edgecolor=line_color, facecolor=field_color)
         ax.add_patch(rect)
+    
+    # for patch in ax.patches[-2:2]:
+    #     patch.set_facecolor('black')
+    #     patch.set_edgecolor('black')
+
     ax.patches[0].set_facecolor('black')
+    ax.patches[0].set_edgecolor('black')
+    ax.patches[1].set_facecolor('black')
+    ax.patches[1].set_edgecolor('black')
     ax.patches[-1].set_facecolor('black')
+    ax.patches[-1].set_edgecolor('black')
+    ax.patches[-2].set_facecolor('black')
+    ax.patches[-2].set_edgecolor('black')
 
     ax.tick_params(
         axis='both',
         which='both',
         direction='in',
-        pad=-40,
+        pad=-60,
         length=5,
         bottom=True,
         top=True,
@@ -38,16 +62,25 @@ def create_football_field(fig, ax, line_color='white', field_color='darkgreen'):
     ax.set_xticks([i for i in range(10, 111)])
     label_set = []
     for i in range(1, 10):
-        label_set += [" " for j in range(9)] + [str(i * 10) if i <= 5 else str((10 - i) * 10)]
+            label_set += [" " for j in range(9)] + [str(i * 10) if i < 5 else str((10 - i) * 10)]
+    #label_set[49] = '50'
     label_set = [" "] + label_set + [" " for j in range(10)]
-    ax.set_xticklabels(label_set, fontsize=20, color=line_color)
+    ax.set_xticklabels(label_set, fontsize=15, color=line_color)
+
+
+    image_path = "/Users/benwolbransky/nfl-big-data-bowl-2024/images/bdb_logo.png"
+    img = plt.imread(image_path)
+    img_height = 53.3 / 5  # Adjust to the height of the field
+    img_width = img_height * img.shape[1] / img.shape[0]
+    ax.imshow(img, extent=[60 - img_width / 2, 60 + img_width / 2, 26.65 - img_height / 2, 26.65 + img_height / 2], aspect='auto', zorder=2)
+
     return fig, ax
 
 
 class NFLPlayApp(tk.Tk):
     def __init__(self, df):
         super().__init__()
-        self.df = df
+        self.df = self.every_other_agent_frame(df)
         self.title("NFL Play Animation")
         self.geometry("800x600")
 
@@ -104,9 +137,38 @@ class NFLPlayApp(tk.Tk):
         self.animation = None
         self.animation_running = False
         self.animation_speed = 1.0  # 1x speed
+    
+    def every_other_agent_frame(self, df):
+            unchanged_columns = df.columns.difference(['smooth_x','smooth_y'])
+            unchanged_df = df[unchanged_columns]
+            unchanged_df = unchanged_df.set_index(['displayName','frameId'])
+
+            smooth_df = df.set_index(['displayName','frameId'])[['smooth_x','smooth_y']]
+            
+            result_df = pd.DataFrame()
+
+            for display_name in df['displayName'].unique():
+                display_name_data = df[df['displayName'] == display_name]
+                display_name_data = display_name_data.groupby('frameId').first().reset_index()
+                # Find the halfway point
+                halfway_point = len(display_name_data) // 2
+
+                # Create a new DataFrame with every other row skipped after the halfway point
+                new_dataframe = pd.concat([display_name_data.iloc[:halfway_point, :], display_name_data.iloc[halfway_point + 1::2, :]])
+                
+                import numpy as np
+                new_dataframe['frameId'] = np.arange(1, len(new_dataframe) + 1)
+                    
+                # Append to the result DataFrame
+                result_df = pd.concat([result_df,new_dataframe])
+
+            result_df = result_df.set_index(['displayName','frameId'])[['smooth_x','smooth_y']]
+
+            return unchanged_df.merge(result_df, left_index = True, right_index = True, how = 'left').reset_index()
+
     def animate_play_func(self, df, visualize_secondary=True):
 
-        fig, ax = plt.subplots()
+        fig, ax = plt.subplots(figsize =(120/12,53.30/12))
         fig, ax = create_football_field(fig, ax)
         ax.set_xlim(0, 120)
         ax.set_ylim(0, 53.3)
@@ -121,7 +183,7 @@ class NFLPlayApp(tk.Tk):
         )
 
         if self.entire_agent_path_var.get():
-            agent_df = df.dropna(subset = 'smooth_x')
+            agent_df = df.dropna(subset = ['smooth_x'])
             for agent in agent_df['displayName'].unique():
                 plot_df = agent_df[agent_df['displayName'] == agent].groupby(['nflId','gameId','playId','frameId'])[['smooth_x','smooth_y']].mean()
                 ax.plot(plot_df['smooth_x'], plot_df['smooth_y'], label=agent,  linestyle='dotted', color='gray', alpha=0.8)
@@ -150,7 +212,6 @@ class NFLPlayApp(tk.Tk):
             for displayName in agent_df['displayName'].unique():
                 player_dots[f'{displayName}_agent'] = \
                 ax.plot([], [], 's', color=player_colors.get(displayName), alpha=1, markeredgecolor='black', label=displayName)[0]
-                
 
         def update(frame_id):
             for dot in player_dots.values():
@@ -180,6 +241,7 @@ class NFLPlayApp(tk.Tk):
             return list(player_dots.values())
 
         ani = animation.FuncAnimation(fig, update, frames=df['frameId'].unique(), interval=100, blit=True, repeat=True)
+        
         if self.save_animation.get():
             ani.save('animation.gif')
 
