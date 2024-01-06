@@ -9,7 +9,6 @@ from src.pso.target_selection import select_common_target
 from IPython.display import HTML
 from frechetdist import frdist
 from scipy.interpolate import interp1d
-import plotly.graph_objs as go
 
 class PSODefense:
     """
@@ -82,6 +81,8 @@ class PSODefense:
 
         # define the ball carrier velocity
         self.ball_carrier_velocity = self.play.loc[self.play['nflId'] == self.ball_carrier_id][['xy_velocity']].values
+
+        
         
         # positional group
         if positional_group == 'safeties':
@@ -126,8 +127,15 @@ class PSODefense:
         ball_carrier_frames = self.play.loc[self.play['nflId'] == self.ball_carrier_id].groupby('frameId')
         self.target_positions = np.array([frame.loc[frame['nflId'] == self.ball_carrier_id][['x', 'y']].values[0] for _, frame in ball_carrier_frames])
 
+        minimium_ball_carrier_velocity_x = self.play.loc[self.play['nflId'] == self.ball_carrier_id]['x_velocity'].max()
+        minimium_ball_carrier_velocity_y = self.play.loc[self.play['nflId'] == self.ball_carrier_id]['y_velocity'].max()
+
         # calculate the target location
-        self.best_target, self.best_target_idx = select_common_target(self.actual_particle_positions[0], self.target_positions, w_theta=1)
+        self.best_target, self.best_target_idx = select_common_target(self.actual_particle_positions[0], 
+                                                                      self.target_positions, 
+                                                                      w_theta=1,
+                                                                      min_velocity=[1,1])
+        
         # mask for the ball carrier positions
         self.best_targets = np.full((self.num_frames, 2), np.nan)
         self.best_targets[self.best_target_idx] = self.best_target
@@ -360,64 +368,3 @@ class PSODefense:
 
         # Convert the animation to HTML and display it in the notebook
         return HTML(anim.to_html5_video())
-
-    def visualize_paths_with_plotly(self, frechet_distances_df):
-        """Creates an interactive Plotly visualization of the player paths."""
-        fig = go.Figure()
-
-        # Find the agent with the lowest Fréchet distance
-        min_frechet_nfl_id = frechet_distances_df.idxmin()['frechet_distance']
-
-        # Define the color for the optimal paths
-        color_optimal = 'blue'  # Blue for optimal paths
-
-        # Add actual and optimal paths for each agent to the figure
-        for i, nfl_id in enumerate(self.agents):
-            actual_path = self.actual_particle_positions[:, i, :]
-            smooth_path = self.smoothed_positions_history[i]
-            frechet_distance = frechet_distances_df.loc[nfl_id, 'frechet_distance']
-
-            # Add actual path with hover text for Fréchet distance
-            fig.add_trace(go.Scatter(
-                x=actual_path[:, 0], y=actual_path[:, 1],
-                mode='lines+markers',
-                name=f'NFLID {nfl_id}' + (" Best" if nfl_id == min_frechet_nfl_id else ""),
-                line=dict(color='orange' if nfl_id == min_frechet_nfl_id else 'black'),
-                text=f"Frechet Distance: {frechet_distance:.2f}",
-                hoverinfo='text+name'
-            ))
-
-            # Add optimal (SWARM) path
-            fig.add_trace(go.Scatter(
-                x=smooth_path[:, 0], y=smooth_path[:, 1],
-                mode='lines',
-                name='SWARM Optimal',
-                line=dict(color=color_optimal, dash='dash'),
-                showlegend=i == 0  # Only show legend entry for SWARM once
-            ))
-
-        # Add ball carrier's path
-        ball_carrier_path = self.target_positions
-        fig.add_trace(go.Scatter(
-            x=ball_carrier_path[:, 0], y=ball_carrier_path[:, 1],
-            mode='lines',
-            name='Ball Carrier',
-            line=dict(color='red', width=2)
-        ))
-
-        # Update layout
-        fig.update_layout(
-            title='Player Paths',
-            xaxis_title='X Position',
-            yaxis_title='Y Position',
-            legend_title='Legend',
-            showlegend=True
-        )
-
-        # Show the figure
-        fig.show()
-
-
-
-
-
