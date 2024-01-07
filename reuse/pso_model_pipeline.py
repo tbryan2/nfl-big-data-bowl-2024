@@ -57,6 +57,10 @@ def run_pso_pipeline(week_num, game_id):
             obstacle_avoidance_factor=1.0,
             stop_threshold=0.0001
         )
+        # skip if pso.best_target is None
+        if pso.best_target is None:
+            print(f"Skipping play ID {play_id}: No target found.")
+            continue
         pso.optimize()
         pso.smooth_paths()
         frechet_distances_df = pso.calculate_frechet_distances_only()
